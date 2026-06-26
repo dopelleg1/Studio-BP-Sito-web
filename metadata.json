@@ -1,0 +1,6 @@
+{
+  "name": "Studio BP Italia",
+  "description": "Portale immobiliare B2C e commerciale B2B per l'agenzia Studio BP Italia, con gestione annunci (Listing), dettagli immobili (PropertyDetails), attività commerciali (BusinessDetails) e contatti (Lead).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
