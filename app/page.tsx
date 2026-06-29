@@ -66,6 +66,13 @@ interface Listing {
   businessDetails?: BusinessDetails;
   data_creazione: string;
   
+  // Campi Getrix
+  riferimento?: string;
+  getrix_id?: string;
+  comune?: string;
+  zona?: string;
+  tipologia?: string;
+  
   // Campi aggiuntivi per gestione backoffice
   stima_riservata?: number;
   proprietario_nome?: string;
@@ -260,16 +267,28 @@ export default function Homepage() {
   // Feed Notifiche toast
   const [notification, setNotification] = useState<string | null>(null);
 
-  // Caricamento asincrono sicuro da localStorage
+  // Caricamento asincrono sicuro da API (MySQL) o localStorage come fallback offline-first
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedListings = localStorage.getItem('sbp_listings_home');
-      const storedLeads = localStorage.getItem('sbp_leads_home');
-      
-      const timer = setTimeout(() => {
+    const loadData = async () => {
+      let loadedListings: Listing[] = [];
+      let loadedLeads: Lead[] = [];
+
+      try {
+        const resListings = await fetch('/api/listings');
+        if (resListings.ok) {
+          loadedListings = await resListings.json();
+          setListings(loadedListings);
+          localStorage.setItem('sbp_listings_home', JSON.stringify(loadedListings));
+        } else {
+          throw new Error('Database listings offline');
+        }
+      } catch (err) {
+        console.warn("Utilizzo localStorage per listings (fallback):", err);
+        const storedListings = localStorage.getItem('sbp_listings_home');
         if (storedListings) {
           try {
-            setListings(JSON.parse(storedListings));
+            loadedListings = JSON.parse(storedListings);
+            setListings(loadedListings);
           } catch {
             setListings(INITIAL_LISTINGS);
           }
@@ -277,10 +296,24 @@ export default function Homepage() {
           setListings(INITIAL_LISTINGS);
           localStorage.setItem('sbp_listings_home', JSON.stringify(INITIAL_LISTINGS));
         }
+      }
 
+      try {
+        const resLeads = await fetch('/api/leads');
+        if (resLeads.ok) {
+          loadedLeads = await resLeads.json();
+          setLeads(loadedLeads);
+          localStorage.setItem('sbp_leads_home', JSON.stringify(loadedLeads));
+        } else {
+          throw new Error('Database leads offline');
+        }
+      } catch (err) {
+        console.warn("Utilizzo localStorage per leads (fallback):", err);
+        const storedLeads = localStorage.getItem('sbp_leads_home');
         if (storedLeads) {
           try {
-            setLeads(JSON.parse(storedLeads));
+            loadedLeads = JSON.parse(storedLeads);
+            setLeads(loadedLeads);
           } catch {
             setLeads(INITIAL_LEADS);
           }
@@ -288,10 +321,10 @@ export default function Homepage() {
           setLeads(INITIAL_LEADS);
           localStorage.setItem('sbp_leads_home', JSON.stringify(INITIAL_LEADS));
         }
-      }, 0);
+      }
+    };
 
-      return () => clearTimeout(timer);
-    }
+    loadData();
   }, []);
 
   // Rileva filtri passati da parametri URL per navigazione esterna o click diretti
@@ -364,32 +397,62 @@ export default function Homepage() {
     }
   };
 
-  // Invio Lead
-  const handleLeadSubmit = (e: React.FormEvent) => {
+  // Invio Lead reale su MySQL Prisma
+  const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLeadForm.nome || !newLeadForm.email) {
       alert('Per favore, compila i campi obbligatori Nome ed Email.');
       return;
     }
 
-    const nextId = leads.length > 0 ? Math.max(...leads.map(l => l.id)) + 1 : 1;
-    const newLead: Lead = {
-      id: nextId,
-      nome: newLeadForm.nome,
-      email: newLeadForm.email,
-      telefono: newLeadForm.telefono || undefined,
-      messaggio: newLeadForm.messaggio || `Richiesta di informazioni per l'annuncio #${selectedListing?.id}`,
-      id_listing_associato: selectedListing?.id,
-      status: 'NEW',
-      data_creazione: new Date().toISOString()
-    };
+    try {
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: newLeadForm.nome,
+          email: newLeadForm.email,
+          telefono: newLeadForm.telefono || undefined,
+          messaggio: newLeadForm.messaggio || `Richiesta di informazioni per l'annuncio #${selectedListing?.id}`,
+          id_listing_associato: selectedListing?.id,
+          status: 'NEW'
+        })
+      });
 
-    const updatedLeads = [newLead, ...leads];
-    setLeads(updatedLeads);
-    saveState(listings, updatedLeads);
+      if (!response.ok) {
+        throw new Error("Impossibile salvare il lead su database remoto");
+      }
 
-    setIsSubmitLeadSuccess(true);
-    showToast(`Lead #${nextId} registrato in MySQL (Simulatore) per "${selectedListing?.titolo}"!`);
+      const savedLead: Lead = await response.json();
+      const updatedLeads = [savedLead, ...leads];
+      setLeads(updatedLeads);
+      saveState(listings, updatedLeads);
+
+      setIsSubmitLeadSuccess(true);
+      showToast(`Lead #${savedLead.id} salvato con successo nel database MySQL di Studio BP!`);
+    } catch (err: any) {
+      console.error(err);
+      
+      // Fallback in locale offline in caso di disconnessione
+      const nextId = leads.length > 0 ? Math.max(...leads.map(l => l.id)) + 1 : 1;
+      const fallbackLead: Lead = {
+        id: nextId,
+        nome: newLeadForm.nome,
+        email: newLeadForm.email,
+        telefono: newLeadForm.telefono || undefined,
+        messaggio: newLeadForm.messaggio || `Richiesta di informazioni per l'annuncio #${selectedListing?.id}`,
+        id_listing_associato: selectedListing?.id,
+        status: 'NEW',
+        data_creazione: new Date().toISOString()
+      };
+
+      const updatedLeads = [fallbackLead, ...leads];
+      setLeads(updatedLeads);
+      saveState(listings, updatedLeads);
+
+      setIsSubmitLeadSuccess(true);
+      showToast(`Richiesta salvata localmente offline (MySQL in attesa di connessione).`);
+    }
 
     setTimeout(() => {
       setIsSubmitLeadSuccess(false);

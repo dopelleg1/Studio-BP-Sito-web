@@ -55,6 +55,23 @@ model Listing {
   
   data_creazione  DateTime         @default(now())
 
+  // Campi Getrix e gestionali Studio BP Italia aggiuntivi
+  riferimento           String?          @db.VarChar(50)
+  getrix_id             String?          @db.VarChar(50)
+  comune                String?          @db.VarChar(100)
+  zona                  String?          @db.VarChar(100)
+  tipologia             String?          @db.VarChar(100)
+  stato_immobile        String?          @db.VarChar(100)
+  riscaldamento         String?          @db.VarChar(100)
+  anno_costruzione      String?          @db.VarChar(10)
+  disponibilita         String?          @db.VarChar(100)
+  spese_condominiali    String?          @db.VarChar(100)
+  provvigione           String?          @db.VarChar(100)
+  tassazione            String?          @db.VarChar(100)
+  proprietario_nome     String?          @db.VarChar(150)
+  proprietario_telefono String?          @db.VarChar(50)
+  stima_riservata       Decimal?         @db.Decimal(12, 2)
+
   // Relazione 1-a-1 opzionale con PropertyDetails. Se categoria = IMMOBILE, questa relazione conterrà i dettagli fisici del bene.
   propertyDetails PropertyDetails?
 

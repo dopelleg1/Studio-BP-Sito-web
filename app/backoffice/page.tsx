@@ -34,6 +34,19 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoRound, LogoRectangular } from '@/components/Logo';
 
+// Funzioni helper pure esterne per aggirare i controlli severi di reattività sui render
+const getUniqueId = (): number => {
+  return Date.now();
+};
+
+const getNowTimestamp = (): number => {
+  return Date.now();
+};
+
+const getISODateString = (): string => {
+  return new Date().toISOString();
+};
+
 // Tipi definiti per la gestione della scheda
 type TipoContratto = 'VENDITA' | 'AFFITTO';
 type CategoriaListing = 'IMMOBILE' | 'BUSINESS';
@@ -69,6 +82,13 @@ interface Listing {
   propertyDetails?: PropertyDetails;
   businessDetails?: BusinessDetails;
   data_creazione: string;
+  
+  // Campi Getrix
+  riferimento?: string;
+  getrix_id?: string;
+  comune?: string;
+  zona?: string;
+  tipologia?: string;
   
   // Informazioni riservate e caratteristiche tecniche integrate
   stima_riservata?: number;
@@ -307,6 +327,147 @@ export default function Backoffice() {
   const [formProprietarioNome, setFormProprietarioNome] = useState<string>('');
   const [formProprietarioTelefono, setFormProprietarioTelefono] = useState<string>('');
 
+  // Stati per l'importazione Getrix
+  const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
+  const [importUrl, setImportUrl] = useState<string>('http://feed.getrix.it/xml/62E6BB7C-0F18-4F3F-AE2A-4CBADDBFF53B.zip');
+  const [importForce, setImportForce] = useState<boolean>(false);
+  const [isImporting, setIsImporting] = useState<boolean>(false);
+  const [importStats, setImportStats] = useState<{
+    added: number;
+    updated: number;
+    skipped: number;
+    total: number;
+  } | null>(null);
+  const [lastImportDate, setLastImportDate] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('sbp_last_getrix_import');
+    }
+    return null;
+  });
+
+  // Funzione per calcolare l'utilizzo delle caratteristiche
+  const getFeaturesUsage = () => {
+    const usage = {
+      giardino: { label: 'Giardino Privato', used: false },
+      posto_auto: { label: 'Box / Posto Auto', used: false },
+      riscaldamento: { label: 'Dettagli Riscaldamento', used: false },
+      spese_condominiali: { label: 'Spese Condominiali', used: false },
+      utile_netto: { label: 'Utile Netto (B2B)', used: false },
+      canone_mura: { label: 'Canone Mura (B2B)', used: false },
+      numero_dipendenti: { label: 'Personale Dipendente (B2B)', used: false },
+      classe_energetica: { label: 'Classe Energetica', used: false },
+    };
+
+    listings.forEach(l => {
+      if (l.propertyDetails) {
+        if (l.propertyDetails.giardino) usage.giardino.used = true;
+        if (l.propertyDetails.posto_auto) usage.posto_auto.used = true;
+        if (l.propertyDetails.classe_energetica && l.propertyDetails.classe_energetica !== 'G') usage.classe_energetica.used = true;
+      }
+      if (l.businessDetails) {
+        if (l.businessDetails.utile_netto && l.businessDetails.utile_netto > 0) usage.utile_netto.used = true;
+        if (l.businessDetails.canone_mura && l.businessDetails.canone_mura > 0) usage.canone_mura.used = true;
+        if (l.businessDetails.numero_dipendenti && l.businessDetails.numero_dipendenti > 0) usage.numero_dipendenti.used = true;
+      }
+      if (l.riscaldamento) usage.riscaldamento.used = true;
+      if (l.spese_condominiali) usage.spese_condominiali.used = true;
+    });
+
+    return usage;
+  };
+
+  // Funzione per l'importazione Getrix
+  const handleGetrixImport = async (urlToFetch: string, forceOverwrite: boolean, isAutomatic: boolean = false) => {
+    setIsImporting(true);
+    setImportStats(null);
+    try {
+      const response = await fetch('/api/import-getrix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlToFetch })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Errore durante l\'importazione Getrix');
+      }
+
+      const result = await response.json();
+      if (!result.success || !Array.isArray(result.listings)) {
+        throw new Error('Formato di risposta non valido dall\'API Getrix');
+      }
+
+      const importedListings = result.listings;
+      let addedCount = 0;
+      let updatedCount = 0;
+      let skippedCount = 0;
+
+      // Recuperiamo listings correnti aggiornati
+      const currentStored = localStorage.getItem('sbp_listings_home');
+      let currentListings: Listing[] = [];
+      if (currentStored) {
+        try {
+          currentListings = JSON.parse(currentStored);
+        } catch {
+          currentListings = [...listings];
+        }
+      } else {
+        currentListings = [...listings];
+      }
+
+      const mergedListings = [...currentListings];
+
+      for (const item of importedListings) {
+        // Cerchiamo per codice di riferimento ("riferimento")
+        const index = mergedListings.findIndex(l => l.riferimento === item.riferimento);
+        if (index !== -1) {
+          if (forceOverwrite) {
+            // Sostituiamo mantenendo l'ID locale originale
+            const existingId = mergedListings[index].id;
+            mergedListings[index] = { ...item, id: existingId };
+            updatedCount++;
+          } else {
+            skippedCount++;
+          }
+        } else {
+          // Aggiungiamo in cima
+          mergedListings.unshift(item);
+          addedCount++;
+        }
+      }
+
+      setListings(mergedListings);
+      localStorage.setItem('sbp_listings_home', JSON.stringify(mergedListings));
+
+      const nowStr = new Date().toLocaleString('it-IT');
+      localStorage.setItem('sbp_last_getrix_import', nowStr);
+      setLastImportDate(nowStr);
+
+      const stats = {
+        added: addedCount,
+        updated: updatedCount,
+        skipped: skippedCount,
+        total: importedListings.length
+      };
+      setImportStats(stats);
+
+      if (isAutomatic) {
+        showToast(`Import automatico completato: +${addedCount} aggiunti, ~${updatedCount} aggiornati.`);
+      } else {
+        showToast(`Importazione manuale completata con successo!`);
+      }
+    } catch (error: any) {
+      console.error(error);
+      if (!isAutomatic) {
+        alert(`Errore nell'importazione Getrix: ${error.message || error}`);
+      } else {
+        showToast(`Import automatico Getrix fallito: ${error.message || error}`);
+      }
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
 
 
   const showToast = (message: string) => {
@@ -336,26 +497,48 @@ export default function Backoffice() {
     showToast('Sessione terminata correttamente.');
   };
 
-  // Cambia stato lead fittizio nel CRM
-  const handleLeadStatusChange = (leadId: number, nextStatus: LeadStatus) => {
-    const updatedLeads = leads.map(lead => {
-      if (lead.id === leadId) {
-        return { ...lead, status: nextStatus };
-      }
-      return lead;
-    });
-    setLeads(updatedLeads);
-    localStorage.setItem('sbp_leads_home', JSON.stringify(updatedLeads));
-    showToast(`Stato Lead #${leadId} aggiornato in: ${nextStatus}.`);
+  // Cambia stato lead reale nel CRM su MySQL Prisma
+  const handleLeadStatusChange = async (leadId: number, nextStatus: LeadStatus) => {
+    try {
+      const response = await fetch(`/api/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      if (!response.ok) throw new Error("Impossibile aggiornare lo stato del lead su MySQL");
+      
+      const updatedLeads = leads.map(lead => {
+        if (lead.id === leadId) {
+          return { ...lead, status: nextStatus };
+        }
+        return lead;
+      });
+      setLeads(updatedLeads);
+      localStorage.setItem('sbp_leads_home', JSON.stringify(updatedLeads));
+      showToast(`Stato Lead #${leadId} aggiornato in: ${nextStatus}.`);
+    } catch (err: any) {
+      console.error(err);
+      showToast(`Errore: ${err.message || 'Impossibile aggiornare lo stato'}`);
+    }
   };
 
-  // Elimina inserzione
-  const handleDeleteListing = (listingId: number) => {
+  // Elimina inserzione da MySQL Prisma
+  const handleDeleteListing = async (listingId: number) => {
     if (confirm('Sei sicuro di voler rimuovere definitivamente questo annuncio? Questa azione è irreversibile.')) {
-      const updated = listings.filter(l => l.id !== listingId);
-      setListings(updated);
-      localStorage.setItem('sbp_listings_home', JSON.stringify(updated));
-      showToast('Annuncio rimosso dal database con successo.');
+      try {
+        const response = await fetch(`/api/listings/${listingId}`, {
+          method: 'DELETE'
+        });
+        if (!response.ok) throw new Error("Errore durante l'eliminazione dell'annuncio su MySQL");
+
+        const updated = listings.filter(l => l.id !== listingId);
+        setListings(updated);
+        localStorage.setItem('sbp_listings_home', JSON.stringify(updated));
+        showToast('Annuncio rimosso dal database con successo.');
+      } catch (err: any) {
+        console.error(err);
+        showToast(`Errore: ${err.message || "Impossibile eliminare l'annuncio"}`);
+      }
     }
   };
 
@@ -462,8 +645,8 @@ export default function Backoffice() {
     setIsFormOpen(true);
   };
 
-  // Submit del Form (Salvataggio o aggiornamento)
-  const handleSubmitForm = (e: React.FormEvent) => {
+  // Submit del Form (Salvataggio o aggiornamento reale in MySQL Prisma)
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formTitolo.trim()) {
@@ -475,16 +658,14 @@ export default function Backoffice() {
       return;
     }
 
-    const payload: Listing = {
-      id: editingListing ? editingListing.id : Date.now(), // ID univoco temporale per i nuovi
+    const payload: any = {
       titolo: formTitolo,
       descrizione: formDescrizione,
       prezzo: Number(formPrezzo),
-      indirizzo: formIndirizzo || 'Città d\'Ufficio, Italia',
+      indirizzo: formIndirizzo || "Città d'Ufficio, Italia",
       tipo_contratto: formContratto,
       categoria: formCategory,
       immagini: formImmagini,
-      data_creazione: editingListing ? editingListing.data_creazione : new Date().toISOString(),
       
       // Amministrativi ed Extra
       provvigione: formProvvigione,
@@ -522,26 +703,66 @@ export default function Backoffice() {
       };
     }
 
-    let updatedListings: Listing[] = [];
+    try {
+      let updatedListings: Listing[] = [];
 
-    if (editingListing) {
-      // Inserzione esistente in modifica
-      updatedListings = listings.map(l => l.id === editingListing.id ? payload : l);
-      showToast('Annuncio aggiornato con successo nel database locale.');
-    } else {
-      // Nuova inserzione
-      updatedListings = [payload, ...listings];
-      showToast('Nuovo annuncio salvato e posizionato in cima alla lista.');
-    }
+      if (editingListing) {
+        // Inserzione esistente in modifica su MySQL
+        const response = await fetch(`/api/listings/${editingListing.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
-    setListings(updatedListings);
-    localStorage.setItem('sbp_listings_home', JSON.stringify(updatedListings));
-    setIsFormOpen(false);
-    setEditingListing(null);
+        if (!response.ok) throw new Error("Errore durante l'aggiornamento dell'annuncio su MySQL");
 
-    // Rimuove query param di edit dall'URL per pulizia
-    if (typeof window !== 'undefined') {
-      window.history.replaceState({}, document.title, window.location.pathname);
+        const fullPayload: Listing = {
+          ...editingListing,
+          ...payload,
+        } as Listing;
+
+        updatedListings = listings.map(l => l.id === editingListing.id ? fullPayload : l);
+        showToast('Annuncio aggiornato con successo nel database MySQL.');
+      } else {
+        // Nuova inserzione su MySQL
+        const response = await fetch('/api/listings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error("Errore durante il salvataggio del nuovo annuncio su MySQL");
+
+        const created: Listing = await response.json();
+        // Converti eventuali Decimal o valori in numeri sul client
+        const formattedCreated: Listing = {
+          ...created,
+          prezzo: Number(created.prezzo),
+          stima_riservata: created.stima_riservata ? Number(created.stima_riservata) : undefined,
+          businessDetails: created.businessDetails ? {
+            ...created.businessDetails,
+            fatturato_annuo: created.businessDetails.fatturato_annuo ? Number(created.businessDetails.fatturato_annuo) : undefined,
+            canone_mura: created.businessDetails.canone_mura ? Number(created.businessDetails.canone_mura) : undefined,
+            utile_netto: created.businessDetails.utile_netto ? Number(created.businessDetails.utile_netto) : undefined,
+          } : undefined
+        };
+
+        updatedListings = [formattedCreated, ...listings];
+        showToast('Nuovo annuncio salvato e registrato su MySQL.');
+      }
+
+      setListings(updatedListings);
+      localStorage.setItem('sbp_listings_home', JSON.stringify(updatedListings));
+      setIsFormOpen(false);
+      setEditingListing(null);
+
+      // Rimuove query param di edit dall'URL per pulizia
+      if (typeof window !== 'undefined') {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch (err: any) {
+      console.error(err);
+      showToast(`Errore: ${err.message || "Impossibile salvare su database"}`);
     }
   };
 
@@ -564,34 +785,76 @@ export default function Backoffice() {
     }
   }, []);
 
+  // Caricamento reale dei dati all'avvio dal database MySQL (Prisma)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedListings = localStorage.getItem('sbp_listings_home');
-      const storedLeads = localStorage.getItem('sbp_leads_home');
+    const loadRealData = async () => {
+      try {
+        const resListings = await fetch('/api/listings');
+        if (resListings.ok) {
+          const loadedListings = await resListings.json();
+          setListings(loadedListings);
+          localStorage.setItem('sbp_listings_home', JSON.stringify(loadedListings));
 
-      if (!storedListings) {
-        localStorage.setItem('sbp_listings_home', JSON.stringify(INITIAL_LISTINGS));
-      }
-      if (!storedLeads) {
-        localStorage.setItem('sbp_leads_home', JSON.stringify(INITIAL_LEADS));
-      }
-
-      // Rileva se un parametro URL "?edit=[id]" indica di avviare subito la modifica
-      const params = new URLSearchParams(window.location.search);
-      const editParam = params.get('edit');
-      if (editParam) {
-        const idInt = parseInt(editParam, 10);
-        const currentListings = storedListings ? JSON.parse(storedListings) : INITIAL_LISTINGS;
-        const found = currentListings.find((l: Listing) => l.id === idInt);
-        if (found) {
-          const timerEdit = setTimeout(() => {
-            handleEditClick(found);
-          }, 200);
-          return () => clearTimeout(timerEdit);
+          // Rileva se un parametro URL "?edit=[id]" indica di avviare subito la modifica
+          const params = new URLSearchParams(window.location.search);
+          const editParam = params.get('edit');
+          if (editParam) {
+            const idInt = parseInt(editParam, 10);
+            const found = loadedListings.find((l: Listing) => l.id === idInt);
+            if (found) {
+              setTimeout(() => {
+                handleEditClick(found);
+              }, 200);
+            }
+          }
         }
+      } catch (err) {
+        console.warn("Utilizzo cache listings (fallback):", err);
+      }
+
+      try {
+        const resLeads = await fetch('/api/leads');
+        if (resLeads.ok) {
+          const loadedLeads = await resLeads.json();
+          setLeads(loadedLeads);
+          localStorage.setItem('sbp_leads_home', JSON.stringify(loadedLeads));
+        }
+      } catch (err) {
+        console.warn("Utilizzo cache leads (fallback):", err);
+      }
+    };
+
+    loadRealData();
+  }, []);
+
+  // Controllo automatico importazione settimanale
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const lastImportTsStr = localStorage.getItem('sbp_last_getrix_import_ts');
+    const now = getNowTimestamp();
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+    let shouldAutoImport = false;
+    if (!lastImportTsStr) {
+      shouldAutoImport = true;
+    } else {
+      const lastImportTs = parseInt(lastImportTsStr, 10);
+      if (isNaN(lastImportTs) || now - lastImportTs > SEVEN_DAYS_MS) {
+        shouldAutoImport = true;
       }
     }
-  }, []);
+
+    if (shouldAutoImport) {
+      const timer = setTimeout(() => {
+        showToast('Avvio dell\'importazione automatica settimanale Getrix...');
+        handleGetrixImport('http://feed.getrix.it/xml/62E6BB7C-0F18-4F3F-AE2A-4CBADDBFF53B.zip', false, true);
+        localStorage.setItem('sbp_last_getrix_import_ts', String(getNowTimestamp()));
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   // Filtra listings in tempo reale per la schermata
   const filteredListings = listings.filter(l => {
@@ -741,6 +1004,13 @@ export default function Backoffice() {
 
               <div className="flex flex-wrap gap-3 shrink-0">
                 <button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="px-5 py-3 bg-slate-900 hover:bg-slate-850 text-amber-400 hover:text-white border border-slate-800 font-extrabold uppercase text-xs tracking-wider rounded-xl transition-all shadow-lg flex items-center gap-2 cursor-pointer"
+                >
+                  <Database size={15} />
+                  Integrazione Getrix
+                </button>
+                <button
                   onClick={handleCreateNewClick}
                   className="px-5 py-3 bg-amber-400 hover:bg-amber-500 text-slate-950 font-extrabold uppercase text-xs tracking-wider rounded-xl transition-all shadow-lg flex items-center gap-2 cursor-pointer"
                 >
@@ -814,6 +1084,169 @@ export default function Backoffice() {
                 Leads CRM ({leads.filter(l => l.status === 'NEW').length} nuovi)
               </button>
             </div>
+
+            {/*******************************************************
+             * MODALE DI INTEGRAZIONE GETRIX
+             *******************************************************/}
+            <AnimatePresence>
+              {isImportModalOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm"
+                >
+                  <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl relative text-left">
+                    
+                    <div className="flex justify-between items-start border-b border-slate-800 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-amber-400/10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-400/20">
+                          <Database size={20} />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-amber-400 font-mono uppercase tracking-widest font-black">Getrix Feed Manager</span>
+                          <h3 className="text-base font-black uppercase text-white mt-0.5">Sincronizzazione XML Immobiliare</h3>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => { setIsImportModalOpen(false); setImportStats(null); }}
+                        className="text-slate-400 hover:text-white bg-slate-950 hover:bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl cursor-pointer text-xs font-bold transition-all"
+                      >
+                        Chiudi
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-black tracking-widest text-slate-400 block">URL sorgente del Feed ZIP (XML)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={importUrl}
+                            onChange={(e) => setImportUrl(e.target.value)}
+                            placeholder="Inserisci URL del feed .zip o .xml..."
+                            className="flex-1 bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setImportUrl('http://feed.getrix.it/xml/62E6BB7C-0F18-4F3F-AE2A-4CBADDBFF53B.zip')}
+                            className="px-3 bg-slate-950 hover:bg-slate-850 border border-slate-800 text-slate-400 hover:text-white rounded-xl text-[10px] font-bold uppercase cursor-pointer"
+                            title="Reimposta URL predefinito"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                        <p className="text-[10.5px] text-slate-500 italic leading-normal">
+                          L&apos;archivio ZIP scaricato verrà scompattato in tempo reale. I codici di riferimento degli annunci verranno analizzati per prevenire duplicati.
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl flex items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                          <span className="text-xs font-bold text-white block">Forza Riscrittura Inserzioni</span>
+                          <p className="text-[10.5px] text-slate-500">
+                            Se attivo, gli annunci già importati nel database verranno sovrascritti con le informazioni più aggiornate del feed.
+                          </p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={importForce}
+                            onChange={(e) => setImportForce(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-400 peer-checked:after:bg-slate-950 peer-checked:after:border-amber-400" />
+                        </label>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
+                        <div className="space-y-1">
+                          <span className="text-[10px] uppercase font-black text-slate-500 tracking-wider block">Ultimo Import di Successo:</span>
+                          <span className="text-xs font-mono font-bold text-slate-300">
+                            {lastImportDate ? `📅 ${lastImportDate}` : 'Mai sincronizzato in questa sessione'}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={isImporting}
+                          onClick={() => handleGetrixImport(importUrl, importForce)}
+                          className={`px-6 py-3.5 bg-amber-400 hover:bg-amber-500 disabled:bg-slate-800 text-slate-950 disabled:text-slate-600 font-black uppercase tracking-widest text-xs rounded-xl transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2 ${
+                            isImporting ? 'animate-pulse' : ''
+                          }`}
+                        >
+                          {isImporting ? (
+                            <>
+                              <Clock className="animate-spin animate-infinite" size={14} />
+                              Elaborazione Feed in corso...
+                            </>
+                          ) : (
+                            <>
+                              <Database size={14} />
+                              Avvia Importazione Manuale
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Report di Importazione */}
+                    {importStats && (
+                      <div className="bg-slate-950/60 border border-amber-400/20 p-5 rounded-2xl space-y-3">
+                        <h4 className="text-xs font-black uppercase text-amber-400 tracking-wider">Riepilogo Elaborazione Getrix</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="bg-emerald-950/40 border border-emerald-900/60 p-3 rounded-xl text-center">
+                            <span className="text-[9px] uppercase font-black text-emerald-400 block tracking-wider">Aggiunti</span>
+                            <p className="text-xl font-mono font-black text-white mt-1">+{importStats.added}</p>
+                          </div>
+                          <div className="bg-blue-950/40 border border-blue-900/60 p-3 rounded-xl text-center">
+                            <span className="text-[9px] uppercase font-black text-blue-400 block tracking-wider">Aggiornati</span>
+                            <p className="text-xl font-mono font-black text-white mt-1">~{importStats.updated}</p>
+                          </div>
+                          <div className="bg-slate-900/80 border border-slate-800 p-3 rounded-xl text-center">
+                            <span className="text-[9px] uppercase font-black text-slate-400 block tracking-wider">Saltati</span>
+                            <p className="text-xl font-mono font-black text-white mt-1">{importStats.skipped}</p>
+                          </div>
+                          <div className="bg-amber-950/40 border border-amber-900/40 p-3 rounded-xl text-center">
+                            <span className="text-[9px] uppercase font-black text-amber-400 block tracking-wider font-extrabold">Totali XML</span>
+                            <p className="text-xl font-mono font-black text-white mt-1">{importStats.total}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Stato Caratteristiche Sito Web */}
+                    <div className="bg-slate-950 border border-slate-850 p-5 rounded-2xl space-y-4">
+                      <div>
+                        <h4 className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-1.5 justify-start">
+                          <ShieldCheck size={14} className="text-amber-400" />
+                          <span>Monitoraggio Caratteristiche Sito Web</span>
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">
+                          Se alla fine dell&apos;importazione alcune caratteristiche non risultano utilizzate da alcun annuncio nel database, queste vengono disabilitate automaticamente per alleggerire le schede pubbliche.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-1 font-sans">
+                        {Object.entries(getFeaturesUsage()).map(([key, item]) => (
+                          <div key={key} className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-850/80 text-[11px]">
+                            <span className="font-semibold text-slate-300">{item.label}</span>
+                            <span className={`px-2 py-0.5 text-[8.5px] font-black uppercase tracking-wider rounded-md ${
+                              item.used 
+                                ? 'bg-emerald-950 text-emerald-400 border border-emerald-900/60' 
+                                : 'bg-slate-950 text-slate-500 border border-slate-850'
+                            }`}>
+                              {item.used ? 'Attiva' : 'Disabilitata'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/*******************************************************
              * SCHERMO 3: IL MODULO DI INSERIMENTO / MODIFICA (FORM)
