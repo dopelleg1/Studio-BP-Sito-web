@@ -229,23 +229,7 @@ export async function POST(req: NextRequest) {
       const getrixId = item['@_IDImmobile'] || item.IDImmobile;
       if (!getrixId) continue;
 
-      // Estrazione del Riferimento Agenzia (Codice annuncio agenzia, es: att.cin.410)
-      const rawRiferimento = sanitizeString(item.Riferimento);
-      // Puliamo il riferimento estraendo la prima parola (es: "att.cin.410 (1859311)" -> "att.cin.410")
-      const refMatch = rawRiferimento.match(/^([^\s(]+)/);
-      const cleanRiferimento = refMatch ? refMatch[1] : rawRiferimento || `getrix.${getrixId}`;
-
-      // Determiniamo la categoria: IMMOBILE o BUSINESS
-      // Categoria Getrix: 1 = Residenziale, 2 = Commerciale, 3 = Industriale/Attività
-      const catVal = parseInt(item.Categoria, 10);
-      const isBusiness = catVal === 3 || item.Attivita !== undefined || (item.Tipologia && item.Tipologia['#text'] && String(item.Tipologia['#text']).toLowerCase().includes('bar')) || (item.Tipologia && String(item.Tipologia).toLowerCase().includes('bar'));
-      const categoria: CategoriaListing = isBusiness ? 'BUSINESS' : 'IMMOBILE';
-
-      // Determiniamo il contratto: VENDITA o AFFITTO
-      const contrattoVal = sanitizeString(item.Contratto);
-      const tipo_contratto: TipoContratto = contrattoVal.toUpperCase() === 'A' ? 'AFFITTO' : 'VENDITA';
-
-      // Descrizioni
+      // Descrizioni (le estraiamo per prime in modo da poter cercare il riferimento all'inizio del testo se necessario)
       let titolo = '';
       let descrizione = '';
       if (item.Descrizioni && item.Descrizioni.Descrizione) {
@@ -264,8 +248,39 @@ export async function POST(req: NextRequest) {
         titolo = sanitizeString(item.Descrizioni.Descrizione?.Titolo || '');
       }
 
+      // Estrazione del Riferimento Agenzia (Codice annuncio agenzia, es: att.cin.410)
+      const rawRiferimento = sanitizeString(item.Riferimento);
+      // Puliamo il riferimento estraendo la prima parola (es: "att.cin.410 (1859311)" -> "att.cin.410")
+      const refMatch = rawRiferimento.match(/^([^\s(]+)/);
+      let cleanRiferimento = refMatch ? refMatch[1] : rawRiferimento;
+
+      // Se il riferimento non inizia con "att" o "imm" (case-insensitive), cerchiamo se è presente nella prima parola della descrizione
+      const hasValidRefPrefix = cleanRiferimento && /^(att|imm)/i.test(cleanRiferimento);
+      if (!hasValidRefPrefix && descrizione) {
+        // Cerca all'inizio della descrizione parole come "Att.1544", "att.cin.584", "imm.123", "Att. 1544"
+        const descMatch = descrizione.trim().match(/^([a-zA-Z]{3,4}\.?\s*[0-9]+(?:\.[0-9]+)?)/i) || descrizione.trim().match(/^([a-zA-Z]{3,4}\.[a-zA-Z0-9.]+)/i);
+        if (descMatch) {
+          cleanRiferimento = descMatch[1].replace(/\s+/g, '').toLowerCase();
+        }
+      }
+
+      // Fallback finale se non abbiamo ancora nulla di valido
+      if (!cleanRiferimento) {
+        cleanRiferimento = `getrix.${getrixId}`;
+      }
+
+      // Determiniamo la categoria: IMMOBILE o BUSINESS
+      // Categoria Getrix: 1 = Residenziale, 2 = Commerciale, 3 = Industriale/Attività
+      const catVal = parseInt(item.Categoria, 10);
+      const isBusiness = catVal === 3 || item.Attivita !== undefined || (item.Tipologia && item.Tipologia['#text'] && String(item.Tipologia['#text']).toLowerCase().includes('bar')) || (item.Tipologia && String(item.Tipologia).toLowerCase().includes('bar'));
+      const categoria: CategoriaListing = isBusiness ? 'BUSINESS' : 'IMMOBILE';
+
+      // Determiniamo il contratto: VENDITA o AFFITTO
+      const contrattoVal = sanitizeString(item.Contratto);
+      const tipo_contratto: TipoContratto = contrattoVal.toUpperCase() === 'A' ? 'AFFITTO' : 'VENDITA';
+
       // Se manca il titolo, ne creiamo uno
-      const tipologiaNome = item.Tipologia ? (item.Tipologia['#text'] || item.Tipologia) : '';
+      const tipologiaNome = sanitizeString(item.Tipologia);
       if (!titolo) {
         titolo = `${tipologiaNome || 'Immobile'} a ${sanitizeString(item.Comune)}`;
       }

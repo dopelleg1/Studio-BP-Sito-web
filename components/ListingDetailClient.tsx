@@ -74,6 +74,8 @@ interface Listing {
   riscaldamento?: string;
   disponibilita?: string;
   spese_condominiali?: string;
+  riferimento?: string;
+  getrix_id?: string;
 }
 
 interface ListingDetailClientProps {
@@ -122,7 +124,11 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
     }
   }, [initialListing]);
 
-  const listing = activeListing;
+  const listing = {
+    ...activeListing,
+    titolo: activeListing.titolo ? String(activeListing.titolo).replace(/\[object Object\]/gi, '').trim() : '',
+    indirizzo: activeListing.indirizzo ? String(activeListing.indirizzo).replace(/\[object Object\]/gi, '').replace(/^,\s*/, '').trim() : '',
+  };
   const [isDescExpanded, setIsDescExpanded] = React.useState(false);
   const [isGalleryModalOpen, setIsGalleryModalOpen] = React.useState(false);
   const [activeImageIdx, setActiveImageIdx] = React.useState(0);
@@ -470,7 +476,7 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
               }`}>
                 {isB2C ? 'Soluzione Abitativa' : 'Opportunità d&apos;Affari Commerciali'}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono">ID Annuncio: #{listing.id}</span>
+              <span className="text-[10px] text-slate-400 font-mono">Codice Rif.: {listing.riferimento ? listing.riferimento.toUpperCase() : `#${listing.id}`}</span>
             </div>
 
             <div className="space-y-2">
@@ -505,107 +511,114 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
           </div>
 
           {/* Quick Stats (Badge con icone in riga orizzontale) */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 md:p-6 shadow-xs">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4">Caratteristiche in evidenza</h3>
-            
-            {isB2C && listing.propertyDetails ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
-                  <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
-                    <Layers className="text-slate-700" size={16} />
+          {((isB2C && listing.propertyDetails && (listing.propertyDetails.stanze > 0 || listing.propertyDetails.mq > 0 || listing.propertyDetails.bagni > 0)) ||
+            (!isB2C && listing.businessDetails && (
+              (listing.businessDetails.fatturato_annuo !== undefined && Number(listing.businessDetails.fatturato_annuo) > 0) ||
+              (listing.businessDetails.canone_mura !== undefined && Number(listing.businessDetails.canone_mura) > 0) ||
+              (listing.propertyDetails && listing.propertyDetails.mq > 0)
+            ))) ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 md:p-6 shadow-xs">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4">Caratteristiche in evidenza</h3>
+              
+              {isB2C && listing.propertyDetails ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
+                    <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
+                      <Layers className="text-slate-700" size={16} />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 uppercase block font-bold">Locali</span>
+                      <span className="text-xs font-black text-slate-950">{listing.propertyDetails.stanze} vani</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 uppercase block font-bold">Locali</span>
-                    <span className="text-xs font-black text-slate-950">{listing.propertyDetails.stanze} vani</span>
-                  </div>
-                </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
-                  <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
-                    <Ruler className="text-slate-700" size={16} />
+                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
+                    <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
+                      <Ruler className="text-slate-700" size={16} />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 uppercase block font-bold">Superficie</span>
+                      <span className="text-xs font-black text-slate-950">{listing.propertyDetails.mq} m²</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 uppercase block font-bold">Superficie</span>
-                    <span className="text-xs font-black text-slate-950">{listing.propertyDetails.mq} m²</span>
-                  </div>
-                </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
-                  <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
-                    <Home className="text-slate-700" size={16} />
+                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
+                    <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
+                      <Home className="text-slate-700" size={16} />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 uppercase block font-bold">Bagni</span>
+                      <span className="text-xs font-black text-slate-950">{listing.propertyDetails.bagni} bagni</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 uppercase block font-bold">Bagni</span>
-                    <span className="text-xs font-black text-slate-950">{listing.propertyDetails.bagni} bagni</span>
-                  </div>
-                </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
-                  <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
-                    <Compass className="text-slate-700" size={16} />
-                  </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 uppercase block font-bold">Piano</span>
-                    <span className="text-xs font-black text-slate-950 truncate max-w-[100px] block">{listing.propertyDetails.piano || 'T'}</span>
+                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
+                    <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
+                      <Compass className="text-slate-700" size={16} />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 uppercase block font-bold">Piano</span>
+                      <span className="text-xs font-black text-slate-950 truncate max-w-[100px] block">{listing.propertyDetails.piano || 'T'}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
 
-            {!isB2C && listing.businessDetails ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
-                  <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
-                    <Ruler className="text-slate-700" size={16} />
+              {!isB2C && listing.businessDetails ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
+                    <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
+                      <Ruler className="text-slate-700" size={16} />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 uppercase block font-bold">Superficie</span>
+                      <span className="text-xs font-black text-slate-950">
+                        {listing.propertyDetails?.mq || 140} m²
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 uppercase block font-bold">Superficie</span>
-                    <span className="text-xs font-black text-slate-950">
-                      {listing.propertyDetails?.mq || 140} m²
-                    </span>
-                  </div>
-                </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
-                  <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
-                    <Building2 className="text-slate-700" size={16} />
+                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
+                    <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
+                      <Building2 className="text-slate-700" size={16} />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 uppercase block font-bold font-sans">Locali/Arredi</span>
+                      <span className="text-xs font-black text-slate-950 truncate block max-w-[110px]">Attrezzato</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 uppercase block font-bold font-sans">Locali/Arredi</span>
-                    <span className="text-xs font-black text-slate-950 truncate block max-w-[110px]">Attrezzato</span>
-                  </div>
-                </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
-                  <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
-                    <TrendingUp className="text-slate-700" size={16} />
+                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
+                    <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
+                      <TrendingUp className="text-slate-700" size={16} />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 uppercase block font-bold">Fatturato</span>
+                      <span className="text-xs font-black text-slate-950 truncate block max-w-[110px]">
+                        {listing.businessDetails.fatturato_annuo 
+                          ? `€ ${Number(listing.businessDetails.fatturato_annuo).toLocaleString('it-IT')}` 
+                          : 'Riservato'}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 uppercase block font-bold">Fatturato</span>
-                    <span className="text-xs font-black text-slate-950 truncate block max-w-[110px]">
-                      {listing.businessDetails.fatturato_annuo 
-                        ? `€ ${listing.businessDetails.fatturato_annuo.toLocaleString('it-IT')}` 
-                        : 'Riservato'}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
-                  <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
-                    <FileText className="text-slate-700" size={16} />
-                  </div>
-                  <div>
-                    <span className="text-[9px] text-slate-400 uppercase block font-bold">Canone</span>
-                    <span className="text-xs font-black text-slate-950 truncate block max-w-[110px]">
-                      {listing.businessDetails.canone_mura 
-                        ? `€ ${listing.businessDetails.canone_mura.toLocaleString('it-IT')}` 
-                        : 'Incluso'}
-                    </span>
+                  <div className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex items-center gap-3">
+                    <div className="w-9 h-9 bg-slate-200/50 rounded-lg flex items-center justify-center shrink-0">
+                      <FileText className="text-slate-700" size={16} />
+                    </div>
+                    <div>
+                      <span className="text-[9px] text-slate-400 uppercase block font-bold">Canone</span>
+                      <span className="text-xs font-black text-slate-950 truncate block max-w-[110px]">
+                        {listing.businessDetails.canone_mura 
+                          ? `€ ${Number(listing.businessDetails.canone_mura).toLocaleString('it-IT')}` 
+                          : 'Incluso'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Descrizione Estesa (con pulsante Leggi tutto) */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 space-y-4 shadow-xs">

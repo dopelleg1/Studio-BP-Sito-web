@@ -38,6 +38,8 @@ interface Listing {
   propertyDetails?: PropertyDetails;
   businessDetails?: BusinessDetails;
   data_creazione: string;
+  riferimento?: string;
+  getrix_id?: string;
 }
 
 // Data seed duplicato qui sul server-side per l'id routing dinamico
@@ -185,6 +187,8 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
         categoria: dbl.categoria as 'IMMOBILE' | 'BUSINESS',
         immagini: Array.isArray(dbl.immagini) ? (dbl.immagini as string[]) : [],
         data_creazione: dbl.data_creazione.toISOString(),
+        riferimento: dbl.riferimento || undefined,
+        getrix_id: dbl.getrix_id || undefined,
         propertyDetails: dbl.propertyDetails ? {
           mq: Number(dbl.propertyDetails.mq),
           stanze: Number(dbl.propertyDetails.stanze),
@@ -291,7 +295,7 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <p className="font-mono flex items-center gap-1.5 leading-relaxed">
             <Database size={13} className="text-amber-500" />
-            <span>ID Annuncio Correntemente Caricato: <strong className="text-white">#{activeListing.id}</strong> • Stato SQL Sincronizzato con schema relazionale.</span>
+            <span>Riferimento Annuncio Correntemente Caricato: <strong className="text-white">{activeListing.riferimento ? activeListing.riferimento.toUpperCase() : `#${activeListing.id}`}</strong> • Stato SQL Sincronizzato con schema relazionale.</span>
           </p>
           <span className="text-[10px] bg-slate-900 text-slate-400 border border-slate-800 px-2 py-0.5 rounded uppercase font-bold tracking-wider leading-none shrink-0">
             Prisma Schema Live Simulator

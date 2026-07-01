@@ -21,6 +21,7 @@ interface BusinessCardProps {
     indirizzo: string;
     tipo_contratto: 'VENDITA' | 'AFFITTO';
     immagini: string | string[] | any;
+    riferimento?: string;
   };
   details: BusinessDetails;
   onSelect?: (id: number) => void;
@@ -58,6 +59,10 @@ export default function BusinessCard({ listing, details, onSelect }: BusinessCar
         : parseFloat(details.canone_mura.toString()).toLocaleString('it-IT'))
     : null;
 
+  // Pulizia dei testi per evitare la dicitura [object Object] residua o passata
+  const titleSanitized = listing.titolo ? listing.titolo.replace(/\[object Object\]/gi, '').trim() : '';
+  const addressSanitized = listing.indirizzo ? listing.indirizzo.replace(/\[object Object\]/gi, '').replace(/^,\s*/, '').trim() : '';
+
   return (
     <div 
       id={`business-card-${listing.id}`}
@@ -69,7 +74,7 @@ export default function BusinessCard({ listing, details, onSelect }: BusinessCar
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={imageUrl} 
-            alt={listing.titolo} 
+            alt={titleSanitized} 
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
             referrerPolicy="no-referrer"
           />
@@ -87,16 +92,16 @@ export default function BusinessCard({ listing, details, onSelect }: BusinessCar
         <div className="p-5 md:p-6 pb-4">
           <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-accent mb-1.5">
             <Briefcase size={12} />
-            <span>Codice Id: #{listing.id}</span>
+            <span>Codice Rif.: {listing.riferimento ? listing.riferimento.toUpperCase() : `#${listing.id}`}</span>
           </div>
           
           <h3 className="text-base font-black text-white leading-snug group-hover:text-accent transition-colors duration-200 line-clamp-1">
-            {listing.titolo}
+            {titleSanitized}
           </h3>
           
           <p className="text-xs text-slate-400 font-semibold flex items-center gap-1 mt-1">
             <MapPin size={11} className="shrink-0 text-accent" />
-            <span className="truncate">{listing.indirizzo}</span>
+            <span className="truncate">{addressSanitized}</span>
           </p>
           
           <p className="text-xs text-slate-350 leading-relaxed mt-2.5 line-clamp-2 min-h-[32px]">
@@ -138,9 +143,9 @@ export default function BusinessCard({ listing, details, onSelect }: BusinessCar
                 Utile Netto: € {parseFloat(details.utile_netto.toString()).toLocaleString('it-IT')}/anno
               </span>
             )}
-            {details.numero_dipendenti && (
+            {typeof details.numero_dipendenti === 'number' && details.numero_dipendenti > 0 && (
               <span>
-                Organico: {details.numero_dipendenti} dipendenti
+                Organico: {details.numero_dipendenti} {details.numero_dipendenti === 1 ? 'dipendente' : 'dipendenti'}
               </span>
             )}
           </div>

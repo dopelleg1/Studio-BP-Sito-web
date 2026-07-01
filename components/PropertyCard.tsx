@@ -23,6 +23,7 @@ interface PropertyCardProps {
     indirizzo: string;
     tipo_contratto: 'VENDITA' | 'AFFITTO';
     immagini: string | string[] | any;
+    riferimento?: string;
   };
   details: PropertyDetails;
   onSelect?: (id: number) => void;
@@ -48,6 +49,10 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
     ? listing.prezzo.toLocaleString('it-IT') 
     : parseFloat(listing.prezzo.toString()).toLocaleString('it-IT');
 
+  // Pulizia dei testi per evitare la dicitura [object Object] residua o passata
+  const titleSanitized = listing.titolo ? listing.titolo.replace(/\[object Object\]/gi, '').trim() : '';
+  const addressSanitized = listing.indirizzo ? listing.indirizzo.replace(/\[object Object\]/gi, '').replace(/^,\s*/, '').trim() : '';
+
   return (
     <div 
       id={`property-card-${listing.id}`}
@@ -59,7 +64,7 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={imageUrl} 
-            alt={listing.titolo} 
+            alt={titleSanitized} 
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             referrerPolicy="no-referrer"
           />
@@ -75,12 +80,17 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
 
         {/* Contenuti di Testo */}
         <div className="p-5 md:p-6 pb-4">
+          <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-1.5">
+            <Building size={12} className="text-accent" />
+            <span>Codice Rif.: {listing.riferimento ? listing.riferimento.toUpperCase() : `#${listing.id}`}</span>
+          </div>
+
           <h3 className="text-base font-black text-primary leading-snug group-hover:text-accent transition-colors duration-200 line-clamp-1">
-            {listing.titolo}
+            {titleSanitized}
           </h3>
           <p className="text-xs text-slate-400 font-semibold flex items-center gap-1 mt-1">
             <MapPin size={11} className="shrink-0 text-accent font-bold" />
-            <span className="truncate">{listing.indirizzo}</span>
+            <span className="truncate">{addressSanitized}</span>
           </p>
           <p className="text-xs text-slate-500 leading-relaxed mt-2.5 line-clamp-2 min-h-[32px]">
             {listing.descrizione}

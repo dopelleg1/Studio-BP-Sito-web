@@ -295,6 +295,7 @@ export default function Backoffice() {
   const [formCategory, setFormCategory] = useState<CategoriaListing>('IMMOBILE');
   const [formContratto, setFormContratto] = useState<TipoContratto>('VENDITA');
   const [formTitolo, setFormTitolo] = useState<string>('');
+  const [formRiferimento, setFormRiferimento] = useState<string>('');
   const [formPrezzo, setFormPrezzo] = useState<number>(0);
   const [formIndirizzo, setFormIndirizzo] = useState<string>('');
   const [formImmagini, setFormImmagini] = useState<string[]>(['https://picsum.photos/seed/duomo/1200/800']);
@@ -521,26 +522,39 @@ export default function Backoffice() {
     }
   };
 
+  // Helper to sanitize any potential object or [object Object] values
+  const cleanVal = (val: any): string => {
+    if (!val) return '';
+    if (typeof val === 'object') {
+      if (val['#text'] !== undefined && val['#text'] !== null) return String(val['#text']).trim();
+      if (val.text !== undefined && val.text !== null) return String(val.text).trim();
+      return '';
+    }
+    const s = String(val).replace(/\[object Object\]/gi, '').trim();
+    return s === 'undefined' || s === 'null' ? '' : s;
+  };
+
   // Edit click: pre-compila lo stato locale del form
   const handleEditClick = (listing: Listing) => {
     setEditingListing(listing);
     setFormCategory(listing.categoria);
     setFormContratto(listing.tipo_contratto);
-    setFormTitolo(listing.titolo);
+    setFormTitolo(cleanVal(listing.titolo));
+    setFormRiferimento(cleanVal(listing.riferimento));
     setFormPrezzo(listing.prezzo);
-    setFormIndirizzo(listing.indirizzo);
+    setFormIndirizzo(cleanVal(listing.indirizzo).replace(/^,\s*/, ''));
     setFormImmagini(listing.immagini && listing.immagini.length > 0 ? listing.immagini : ['https://picsum.photos/seed/duomo/1200/800']);
-    setFormDescrizione(listing.descrizione);
+    setFormDescrizione(cleanVal(listing.descrizione));
 
     // Dettagli Immobile
     if (listing.propertyDetails) {
       setFormMq(listing.propertyDetails.mq);
       setFormStanze(listing.propertyDetails.stanze);
       setFormBagni(listing.propertyDetails.bagni);
-      setFormPiano(listing.propertyDetails.piano || 'Piano Terra');
+      setFormPiano(cleanVal(listing.propertyDetails.piano) || 'Piano Terra');
       setFormPostoAuto(listing.propertyDetails.posto_auto);
       setFormGiardino(listing.propertyDetails.giardino);
-      setFormClasseEnergetica(listing.propertyDetails.classe_energetica || 'G');
+      setFormClasseEnergetica(cleanVal(listing.propertyDetails.classe_energetica) || 'G');
     } else {
       setFormMq(120);
       setFormStanze(3);
@@ -553,10 +567,10 @@ export default function Backoffice() {
 
     // Dettagli Attività
     if (listing.businessDetails) {
-      setFormSettore(listing.businessDetails.settore_merceologico);
-      setFormFatturato(listing.businessDetails.fatturato_annuo || 0);
-      setFormCanoneMura(listing.businessDetails.canone_mura || 0);
-      setFormUtile(listing.businessDetails.utile_netto || 0);
+      setFormSettore(cleanVal(listing.businessDetails.settore_merceologico) || 'Ristorazione / Bar');
+      setFormFatturato(listing.businessDetails.fatturato_annuo ? Number(listing.businessDetails.fatturato_annuo) : 0);
+      setFormCanoneMura(listing.businessDetails.canone_mura ? Number(listing.businessDetails.canone_mura) : 0);
+      setFormUtile(listing.businessDetails.utile_netto ? Number(listing.businessDetails.utile_netto) : 0);
       setFormDipendenti(listing.businessDetails.numero_dipendenti || 0);
     } else {
       setFormSettore('Ristorazione / Bar');
@@ -567,18 +581,18 @@ export default function Backoffice() {
     }
 
     // Amministrativi ed Extra
-    setFormProvvigione(listing.provvigione || '3% + IVA');
-    setFormTassazione(listing.tassazione || 'Cedolare Secca / Imposta Registro');
-    setFormStatoImmobile(listing.stato_immobile || 'Ottimo / Ristrutturato');
-    setFormAnnoCostruzione(listing.anno_costruzione || '2018');
-    setFormRiscaldamento(listing.riscaldamento || 'Autonomo, aria condizionata');
-    setFormDisponibilita(listing.disponibilita || 'Immediata al Rogito');
-    setFormSpeseCondo(listing.spese_condominiali || '120 €/mese');
+    setFormProvvigione(cleanVal(listing.provvigione) || '3% + IVA');
+    setFormTassazione(cleanVal(listing.tassazione) || 'Cedolare Secca / Imposta Registro');
+    setFormStatoImmobile(cleanVal(listing.stato_immobile) || 'Ottimo / Ristrutturato');
+    setFormAnnoCostruzione(cleanVal(listing.anno_costruzione) || '2018');
+    setFormRiscaldamento(cleanVal(listing.riscaldamento) || 'Autonomo, aria condizionata');
+    setFormDisponibilita(cleanVal(listing.disponibilita) || 'Immediata al Rogito');
+    setFormSpeseCondo(cleanVal(listing.spese_condominiali) || '120 €/mese');
 
     // Segreti Studio BP
     setFormStimaRiservata(listing.stima_riservata || Math.round(listing.prezzo * 0.9));
-    setFormProprietarioNome(listing.proprietario_nome || 'Mario Rossi');
-    setFormProprietarioTelefono(listing.proprietario_telefono || '+39 333 1122334');
+    setFormProprietarioNome(cleanVal(listing.proprietario_nome) || 'Mario Rossi');
+    setFormProprietarioTelefono(cleanVal(listing.proprietario_telefono) || '+39 333 1122334');
 
     setIsFormOpen(true);
   };
@@ -589,6 +603,7 @@ export default function Backoffice() {
     setFormCategory('IMMOBILE');
     setFormContratto('VENDITA');
     setFormTitolo('');
+    setFormRiferimento('');
     setFormPrezzo(0);
     setFormIndirizzo('');
     setFormImmagini(['https://picsum.photos/seed/duomo/1200/800']);
@@ -637,6 +652,20 @@ export default function Backoffice() {
       return;
     }
 
+    // Controllo che il codice modificato non sia già utilizzato in un'altra scheda
+    const normalizedNewRef = formRiferimento.trim().toLowerCase();
+    if (normalizedNewRef) {
+      const isAlreadyUsed = listings.some(l => 
+        l.riferimento && 
+        l.riferimento.toLowerCase() === normalizedNewRef && 
+        l.id !== editingListing?.id
+      );
+      if (isAlreadyUsed) {
+        alert(`Il Codice di Riferimento "${formRiferimento}" è già utilizzato in un altro annuncio! Per favore, inserisci un codice univoco.`);
+        return;
+      }
+    }
+
     const payload: any = {
       titolo: formTitolo,
       descrizione: formDescrizione,
@@ -645,6 +674,7 @@ export default function Backoffice() {
       tipo_contratto: formContratto,
       categoria: formCategory,
       immagini: formImmagini,
+      riferimento: formRiferimento.trim() || undefined,
       
       // Amministrativi ed Extra
       provvigione: formProvvigione,
@@ -1432,6 +1462,17 @@ export default function Backoffice() {
                           />
                         </div>
 
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-black text-slate-400 block tracking-wider">Codice di Riferimento</label>
+                          <input
+                            type="text"
+                            value={formRiferimento}
+                            onChange={(e) => setFormRiferimento(e.target.value)}
+                            placeholder="E.g. att.cin.584, imm.123..."
+                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                          />
+                        </div>
+
                         <div className="space-y-1.5 md:col-span-2">
                           <label className="text-[10px] uppercase font-black text-slate-400 block tracking-wider">Gestione Media Fisici (Foto Annuncio)</label>
                           
@@ -1491,27 +1532,7 @@ export default function Backoffice() {
                             </div>
                           )}
 
-                          {/* Selettore rapido foto stock */}
-                          <div className="space-y-2 pt-4 border-t border-slate-850/50 mt-4">
-                            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Selettore rapido foto di stock aggiuntive:</span>
-                            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-                              {STOCK_PHOTOS.map(p => {
-                                const isSelected = formImmagini.includes(p.url);
-                                return (
-                                  <button
-                                    key={p.id}
-                                    type="button"
-                                    onClick={() => handleSelectStockPhoto(p.url)}
-                                    className={`p-1.5 bg-slate-950 hover:bg-slate-900 border text-center rounded-lg text-[9px] font-bold truncate focus:outline-none transition-all ${
-                                      isSelected ? 'border-amber-400 ring-1 ring-amber-400 text-amber-400 bg-amber-500/5' : 'border-slate-850 text-slate-400'
-                                    }`}
-                                  >
-                                    {isSelected ? '✓ ' : ''}{p.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
+
                         </div>
                       </div>
                     </div>
@@ -1902,7 +1923,7 @@ export default function Backoffice() {
                   <table className="w-full text-xs text-left text-slate-300 border-collapse">
                     <thead className="bg-slate-900/80 text-[9.5px] uppercase text-slate-400 font-mono tracking-widest border-b border-slate-850">
                       <tr>
-                        <th className="px-4 py-3.5">ID</th>
+                        <th className="px-4 py-3.5">Codice Rif.</th>
                         <th className="px-4 py-3.5">Scheda Annuncio</th>
                         <th className="px-4 py-3.5">Ramo</th>
                         <th className="px-4 py-3.5">Ubicazione</th>
@@ -1916,9 +1937,9 @@ export default function Backoffice() {
                       {filteredListings.length > 0 ? (
                         filteredListings.map(l => (
                           <tr key={l.id} className="hover:bg-slate-900/40 transition-colors">
-                            <td className="px-4 py-4 font-mono text-[10.5px] text-slate-500 font-bold">#{l.id}</td>
+                            <td className="px-4 py-4 font-mono text-[10.5px] text-slate-500 font-bold">{l.riferimento ? cleanVal(l.riferimento).toUpperCase() : `#${l.id}`}</td>
                             <td className="px-4 py-4 min-w-[200px]">
-                              <p className="font-extrabold text-white text-xs hover:text-amber-400 transition-colors">{l.titolo}</p>
+                              <p className="font-extrabold text-white text-xs hover:text-amber-400 transition-colors">{cleanVal(l.titolo)}</p>
                               <span className="text-[10px] text-slate-400 font-bold uppercase mt-0.5 inline-block">{l.tipo_contratto}</span>
                             </td>
                             <td className="px-4 py-4">
@@ -1928,7 +1949,7 @@ export default function Backoffice() {
                                 {l.categoria === 'IMMOBILE' ? 'Immobile' : 'Attività'}
                               </span>
                             </td>
-                            <td className="px-4 py-4 text-slate-400">{l.indirizzo}</td>
+                            <td className="px-4 py-4 text-slate-400">{cleanVal(l.indirizzo).replace(/^,\s*/, '')}</td>
                             <td className="px-4 py-4 text-right font-mono font-black text-white text-xs">
                               € {l.prezzo.toLocaleString('it-IT')}
                               {l.tipo_contratto === 'AFFITTO' ? <span className="text-[10px] font-normal text-slate-500"> /m</span> : ''}
