@@ -384,7 +384,7 @@ export default function Backoffice() {
       const response = await fetch('/api/import-getrix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: urlToFetch })
+        body: JSON.stringify({ url: urlToFetch, force: forceOverwrite })
       });
 
       if (!response.ok) {
@@ -393,51 +393,21 @@ export default function Backoffice() {
       }
 
       const result = await response.json();
-      if (!result.success || !Array.isArray(result.listings)) {
-        throw new Error('Formato di risposta non valido dall\'API Getrix');
+      if (!result.success) {
+        throw new Error(result.error || 'Formato di risposta non valido dall\'API Getrix');
       }
 
-      const importedListings = result.listings;
-      let addedCount = 0;
-      let updatedCount = 0;
-      let skippedCount = 0;
-
-      // Recuperiamo listings correnti aggiornati
-      const currentStored = localStorage.getItem('sbp_listings_home');
-      let currentListings: Listing[] = [];
-      if (currentStored) {
-        try {
-          currentListings = JSON.parse(currentStored);
-        } catch {
-          currentListings = [...listings];
-        }
-      } else {
-        currentListings = [...listings];
+      // Recuperiamo gli annunci aggiornati direttamente da MySQL
+      const resListings = await fetch('/api/listings');
+      if (resListings.ok) {
+        const dbListings = await resListings.json();
+        setListings(dbListings);
+        localStorage.setItem('sbp_listings_home', JSON.stringify(dbListings));
       }
 
-      const mergedListings = [...currentListings];
-
-      for (const item of importedListings) {
-        // Cerchiamo per codice di riferimento ("riferimento")
-        const index = mergedListings.findIndex(l => l.riferimento === item.riferimento);
-        if (index !== -1) {
-          if (forceOverwrite) {
-            // Sostituiamo mantenendo l'ID locale originale
-            const existingId = mergedListings[index].id;
-            mergedListings[index] = { ...item, id: existingId };
-            updatedCount++;
-          } else {
-            skippedCount++;
-          }
-        } else {
-          // Aggiungiamo in cima
-          mergedListings.unshift(item);
-          addedCount++;
-        }
-      }
-
-      setListings(mergedListings);
-      localStorage.setItem('sbp_listings_home', JSON.stringify(mergedListings));
+      const addedCount = result.added ?? 0;
+      const updatedCount = result.updated ?? 0;
+      const skippedCount = result.skipped ?? 0;
 
       const nowStr = new Date().toLocaleString('it-IT');
       localStorage.setItem('sbp_last_getrix_import', nowStr);
@@ -447,14 +417,14 @@ export default function Backoffice() {
         added: addedCount,
         updated: updatedCount,
         skipped: skippedCount,
-        total: importedListings.length
+        total: result.count ?? 0
       };
       setImportStats(stats);
 
       if (isAutomatic) {
         showToast(`Import automatico completato: +${addedCount} aggiunti, ~${updatedCount} aggiornati.`);
       } else {
-        showToast(`Importazione manuale completata con successo!`);
+        showToast(`Sincronizzazione completata nel DB MySQL: +${addedCount} nuovi, ~${updatedCount} aggiornati.`);
       }
     } catch (error: any) {
       console.error(error);

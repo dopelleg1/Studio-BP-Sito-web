@@ -3,6 +3,7 @@ import AdmZip from 'adm-zip';
 import { XMLParser } from 'fast-xml-parser';
 import fs from 'fs';
 import path from 'path';
+import { db } from '@/lib/db';
 
 // Definizione Tipi coerenti con il resto dell'applicazione
 type TipoContratto = 'VENDITA' | 'AFFITTO';
@@ -408,9 +409,166 @@ export async function POST(req: NextRequest) {
       importedListings.push(listingsPayload);
     }
 
+    // --- SALVATAGGIO REALE IN MYSQL ---
+    let addedCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    for (const listingsPayload of importedListings) {
+      try {
+        // Trova se esiste già un annuncio con lo stesso codice di riferimento
+        const existing = await db.listing.findFirst({
+          where: { riferimento: listingsPayload.riferimento }
+        });
+
+        if (existing) {
+          if (force) {
+            // Aggiorna l'annuncio principale esistente
+            await db.listing.update({
+              where: { id: existing.id },
+              data: {
+                titolo: listingsPayload.titolo,
+                descrizione: listingsPayload.descrizione,
+                prezzo: listingsPayload.prezzo,
+                indirizzo: listingsPayload.indirizzo,
+                tipo_contratto: listingsPayload.tipo_contratto,
+                categoria: listingsPayload.categoria,
+                immagini: listingsPayload.immagini,
+                comune: listingsPayload.comune,
+                zona: listingsPayload.zona,
+                tipologia: listingsPayload.tipologia,
+                stato_immobile: listingsPayload.stato_immobile,
+                riscaldamento: listingsPayload.riscaldamento,
+                anno_costruzione: listingsPayload.anno_costruzione,
+                disponibilita: listingsPayload.disponibilita,
+                spese_condominiali: listingsPayload.spese_condominiali,
+                provvigione: listingsPayload.provvigione,
+                tassazione: listingsPayload.tassazione,
+                proprietario_nome: listingsPayload.proprietario_nome,
+                proprietario_telefono: listingsPayload.proprietario_telefono,
+                stima_riservata: listingsPayload.stima_riservata,
+              }
+            });
+
+            // Gestione Dettagli fisici o business
+            if (listingsPayload.categoria === 'IMMOBILE' && listingsPayload.propertyDetails) {
+              await db.propertyDetails.upsert({
+                where: { listingId: existing.id },
+                create: {
+                  listingId: existing.id,
+                  mq: listingsPayload.propertyDetails.mq,
+                  stanze: listingsPayload.propertyDetails.stanze,
+                  bagni: listingsPayload.propertyDetails.bagni,
+                  classe_energetica: listingsPayload.propertyDetails.classe_energetica,
+                  piano: listingsPayload.propertyDetails.piano,
+                  posto_auto: listingsPayload.propertyDetails.posto_auto,
+                  giardino: listingsPayload.propertyDetails.giardino,
+                },
+                update: {
+                  mq: listingsPayload.propertyDetails.mq,
+                  stanze: listingsPayload.propertyDetails.stanze,
+                  bagni: listingsPayload.propertyDetails.bagni,
+                  classe_energetica: listingsPayload.propertyDetails.classe_energetica,
+                  piano: listingsPayload.propertyDetails.piano,
+                  posto_auto: listingsPayload.propertyDetails.posto_auto,
+                  giardino: listingsPayload.propertyDetails.giardino,
+                }
+              });
+              await db.businessDetails.deleteMany({ where: { listingId: existing.id } });
+            } else if (listingsPayload.categoria === 'BUSINESS' && listingsPayload.businessDetails) {
+              await db.businessDetails.upsert({
+                where: { listingId: existing.id },
+                create: {
+                  listingId: existing.id,
+                  settore_merceologico: listingsPayload.businessDetails.settore_merceologico,
+                  fatturato_annuo: listingsPayload.businessDetails.fatturato_annuo,
+                  canone_mura: listingsPayload.businessDetails.canone_mura,
+                  utile_netto: listingsPayload.businessDetails.utile_netto,
+                  numero_dipendenti: listingsPayload.businessDetails.numero_dipendenti || 0,
+                },
+                update: {
+                  settore_merceologico: listingsPayload.businessDetails.settore_merceologico,
+                  fatturato_annuo: listingsPayload.businessDetails.fatturato_annuo,
+                  canone_mura: listingsPayload.businessDetails.canone_mura,
+                  utile_netto: listingsPayload.businessDetails.utile_netto,
+                  numero_dipendenti: listingsPayload.businessDetails.numero_dipendenti || 0,
+                }
+              });
+              await db.propertyDetails.deleteMany({ where: { listingId: existing.id } });
+            }
+            updatedCount++;
+          } else {
+            skippedCount++;
+          }
+        } else {
+          // Nuovo annuncio
+          // Verifica se l'ID generato è già occupato
+          const idInUse = await db.listing.findUnique({
+            where: { id: listingsPayload.id }
+          });
+          const createId = idInUse ? undefined : listingsPayload.id;
+
+          await db.listing.create({
+            data: {
+              id: createId,
+              titolo: listingsPayload.titolo,
+              descrizione: listingsPayload.descrizione,
+              prezzo: listingsPayload.prezzo,
+              indirizzo: listingsPayload.indirizzo,
+              tipo_contratto: listingsPayload.tipo_contratto,
+              categoria: listingsPayload.categoria,
+              immagini: listingsPayload.immagini,
+              data_creazione: listingsPayload.data_creazione ? new Date(listingsPayload.data_creazione) : new Date(),
+              riferimento: listingsPayload.riferimento,
+              getrix_id: listingsPayload.getrix_id,
+              comune: listingsPayload.comune,
+              zona: listingsPayload.zona,
+              tipologia: listingsPayload.tipologia,
+              stato_immobile: listingsPayload.stato_immobile,
+              riscaldamento: listingsPayload.riscaldamento,
+              anno_costruzione: listingsPayload.anno_costruzione,
+              disponibilita: listingsPayload.disponibilita,
+              spese_condominiali: listingsPayload.spese_condominiali,
+              provvigione: listingsPayload.provvigione,
+              tassazione: listingsPayload.tassazione,
+              proprietario_nome: listingsPayload.proprietario_nome,
+              proprietario_telefono: listingsPayload.proprietario_telefono,
+              stima_riservata: listingsPayload.stima_riservata,
+              propertyDetails: listingsPayload.categoria === 'IMMOBILE' && listingsPayload.propertyDetails ? {
+                create: {
+                  mq: listingsPayload.propertyDetails.mq,
+                  stanze: listingsPayload.propertyDetails.stanze,
+                  bagni: listingsPayload.propertyDetails.bagni,
+                  classe_energetica: listingsPayload.propertyDetails.classe_energetica,
+                  piano: listingsPayload.propertyDetails.piano,
+                  posto_auto: listingsPayload.propertyDetails.posto_auto,
+                  giardino: listingsPayload.propertyDetails.giardino,
+                }
+              } : undefined,
+              businessDetails: listingsPayload.categoria === 'BUSINESS' && listingsPayload.businessDetails ? {
+                create: {
+                  settore_merceologico: listingsPayload.businessDetails.settore_merceologico,
+                  fatturato_annuo: listingsPayload.businessDetails.fatturato_annuo,
+                  canone_mura: listingsPayload.businessDetails.canone_mura,
+                  utile_netto: listingsPayload.businessDetails.utile_netto,
+                  numero_dipendenti: listingsPayload.businessDetails.numero_dipendenti || 0,
+                }
+              } : undefined,
+            }
+          });
+          addedCount++;
+        }
+      } catch (err) {
+        console.error(`Errore nel salvataggio dell'annuncio ${listingsPayload.riferimento}:`, err);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       count: importedListings.length,
+      added: addedCount,
+      updated: updatedCount,
+      skipped: skippedCount,
       listings: importedListings
     });
 

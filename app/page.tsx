@@ -721,7 +721,7 @@ model Lead {
       <section id="hero-section" className="relative grid grid-cols-1 lg:grid-cols-2 min-h-[640px] border-b border-slate-200">
         
         {/* LATO SINISTRO: IMMOBILIARE (B2C) - SAGE GREEN / AZZURRO ACQUA */}
-        <div className="relative overflow-hidden flex flex-col justify-between p-8 md:p-14 lg:p-20 bg-[#cad5e2] hover:bg-[#b8c7d6]/80 transition-colors duration-500 group border-b lg:border-b-0 lg:border-r border-slate-200">
+        <div className="relative overflow-hidden flex flex-col justify-between p-8 md:p-14 lg:p-20 bg-[#e3d6b8] hover:bg-[#d5c7a9]/80 transition-colors duration-500 group border-b lg:border-b-0 lg:border-r border-slate-200">
           
           {/* Sfondo Astratto */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/20 rounded-full blur-3xl -z-10 group-hover:scale-110 transition-transform duration-700" />
@@ -850,7 +850,7 @@ model Lead {
                 setShowSqlViewer(true);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="bg-[#cad5e2] hover:bg-[#b8c7d6] text-slate-950 font-black text-xs uppercase tracking-wider px-6 py-4 rounded-xl transition-all hover:scale-102 shadow-md shadow-[#cad5e2]/10 border border-transparent"
+              className="bg-[#e3d6b8] hover:bg-[#d5c7a9] text-slate-950 font-black text-xs uppercase tracking-wider px-6 py-4 rounded-xl transition-all hover:scale-102 shadow-md shadow-[#e3d6b8]/10 border border-transparent"
             >
               Visualizza Data Schema
             </button>
