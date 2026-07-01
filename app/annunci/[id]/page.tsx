@@ -3,6 +3,9 @@ import { ChevronLeft, Database, Phone } from 'lucide-react';
 import Link from 'next/link';
 import ListingDetailClient from '@/components/ListingDetailClient';
 import { LogoRound, LogoRectangular } from '@/components/Logo';
+import { db } from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 
 // Definizione del tipo ed estensioni per supportare il rendering asincrono
 interface PropertyDetails {
@@ -160,36 +163,59 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
   const resolvedParams = await params;
   const idInt = parseInt(resolvedParams.id, 10);
 
-  /*
-  ========================================================================
-  [QUERY PRISMA ORM COMMENTATA - INTERROGAZIONE DATI REALE]
-  ========================================================================
-  import { db } from "@/lib/db"; // Istanza PrismaClient
+  let activeListing = FallbackListings[0];
 
-  const listing = await db.listing.findUnique({
-    where: { 
-      id: idInt 
-    },
-    include: {
-      propertyDetails: true, // Relazione B2C (1:1)
-      businessDetails: true, // Relazione B2B (1:1)
-      _count: {
-        select: { leads: true } // Conta lead totali inseriti (Relazione 1:N)
+  try {
+    const dbl = await db.listing.findUnique({
+      where: { id: idInt },
+      include: {
+        propertyDetails: true,
+        businessDetails: true,
+      }
+    });
+
+    if (dbl) {
+      activeListing = {
+        id: dbl.id,
+        titolo: dbl.titolo,
+        descrizione: dbl.descrizione,
+        prezzo: Number(dbl.prezzo),
+        indirizzo: dbl.indirizzo,
+        tipo_contratto: dbl.tipo_contratto as 'VENDITA' | 'AFFITTO',
+        categoria: dbl.categoria as 'IMMOBILE' | 'BUSINESS',
+        immagini: Array.isArray(dbl.immagini) ? (dbl.immagini as string[]) : [],
+        data_creazione: dbl.data_creazione.toISOString(),
+        propertyDetails: dbl.propertyDetails ? {
+          mq: Number(dbl.propertyDetails.mq),
+          stanze: Number(dbl.propertyDetails.stanze),
+          bagni: Number(dbl.propertyDetails.bagni),
+          classe_energetica: dbl.propertyDetails.classe_energetica,
+          piano: dbl.propertyDetails.piano || undefined,
+          posto_auto: Boolean(dbl.propertyDetails.posto_auto),
+          giardino: Boolean(dbl.propertyDetails.giardino),
+        } : undefined,
+        businessDetails: dbl.businessDetails ? {
+          settore_merceologico: dbl.businessDetails.settore_merceologico,
+          fatturato_annuo: dbl.businessDetails.fatturato_annuo ? Number(dbl.businessDetails.fatturato_annuo) : undefined,
+          canone_mura: dbl.businessDetails.canone_mura ? Number(dbl.businessDetails.canone_mura) : undefined,
+          utile_netto: dbl.businessDetails.utile_netto ? Number(dbl.businessDetails.utile_netto) : undefined,
+          numero_dipendenti: dbl.businessDetails.numero_dipendenti || undefined,
+        } : undefined,
+      };
+    } else {
+      const found = FallbackListings.find(l => l.id === idInt);
+      if (found) {
+        activeListing = found;
       }
     }
-  });
-
-  if (!listing) {
-    return notFound();
+  } catch (err) {
+    console.error("Errore nel caricamento del listing dal db:", err);
+    const found = FallbackListings.find(l => l.id === idInt);
+    if (found) {
+      activeListing = found;
+    }
   }
-  ========================================================================
-  */
 
-  // Ricerca locale simulata dell'id per il funzionamento interattivo della demo
-  const listing = FallbackListings.find(l => l.id === idInt);
-
-  // Se l'ID cercato non è tra quelli della demo, prendiamo il primo per prevenire crash insoluti
-  const activeListing = listing || FallbackListings[0];
   const isB2C = activeListing.categoria === 'IMMOBILE';
 
   return (

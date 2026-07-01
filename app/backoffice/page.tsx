@@ -29,7 +29,8 @@ import {
   CheckCircle,
   HelpCircle,
   Clock,
-  LayoutDashboard
+  LayoutDashboard,
+  UploadCloud
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoRound, LogoRectangular } from '@/components/Logo';
@@ -245,6 +246,9 @@ export default function Backoffice() {
   const [username, setUsername] = useState<string>('editore');
   const [password, setPassword] = useState<string>('');
   const [authError, setAuthError] = useState<string>('');
+  const [isDbConnected, setIsDbConnected] = useState<boolean | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
 
   // Liste dati
   const [listings, setListings] = useState<Listing[]>(() => {
@@ -493,22 +497,27 @@ export default function Backoffice() {
   };
 
   // Elimina inserzione da MySQL Prisma
-  const handleDeleteListing = async (listingId: number) => {
-    if (confirm('Sei sicuro di voler rimuovere definitivamente questo annuncio? Questa azione è irreversibile.')) {
-      try {
-        const response = await fetch(`/api/listings/${listingId}`, {
-          method: 'DELETE'
-        });
-        if (!response.ok) throw new Error("Errore durante l'eliminazione dell'annuncio su MySQL");
+  const handleDeleteListing = (listingId: number) => {
+    setDeleteConfirmId(listingId);
+  };
 
-        const updated = listings.filter(l => l.id !== listingId);
-        setListings(updated);
-        localStorage.setItem('sbp_listings_home', JSON.stringify(updated));
-        showToast('Annuncio rimosso dal database con successo.');
-      } catch (err: any) {
-        console.error(err);
-        showToast(`Errore: ${err.message || "Impossibile eliminare l'annuncio"}`);
-      }
+  const handleExecuteDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      const response = await fetch(`/api/listings/${deleteConfirmId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error("Errore durante l'eliminazione dell'annuncio su MySQL");
+
+      const updated = listings.filter(l => l.id !== deleteConfirmId);
+      setListings(updated);
+      localStorage.setItem('sbp_listings_home', JSON.stringify(updated));
+      showToast('Annuncio rimosso dal database con successo.');
+    } catch (err: any) {
+      console.error(err);
+      showToast(`Errore: ${err.message || "Impossibile eliminare l'annuncio"}`);
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -738,8 +747,62 @@ export default function Backoffice() {
 
   // Seleziona una foto pre-impostata
   const handleSelectStockPhoto = (url: string) => {
-    setFormImmagini([url]);
-    showToast('Immagine di copertina impostata con successo.');
+    if (formImmagini.includes(url)) {
+      setFormImmagini(prev => prev.filter(img => img !== url));
+      showToast('Immagine di stock rimossa.');
+    } else {
+      setFormImmagini(prev => [...prev, url]);
+      showToast('Immagine di stock aggiunta alla galleria.');
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const updatedImmagini = [...formImmagini];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      // Converti in base64 per passarlo all'API di upload
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      try {
+        const base64 = await base64Promise;
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: file.name,
+            type: file.type,
+            base64: base64
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.url) {
+            updatedImmagini.push(data.url);
+          }
+        }
+      } catch (err) {
+        console.error("Errore durante il caricamento della foto:", err);
+      }
+    }
+
+    setFormImmagini(updatedImmagini);
+    setIsUploading(false);
+    showToast("Immagini caricate e salvate sul server con successo!");
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setFormImmagini(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   // Carica i dati all'avvio dal localStorage
@@ -758,12 +821,14 @@ export default function Backoffice() {
   // Caricamento reale dei dati all'avvio dal database MySQL (Prisma)
   useEffect(() => {
     const loadRealData = async () => {
+      let isConnected = false;
       try {
         const resListings = await fetch('/api/listings');
         if (resListings.ok) {
           const loadedListings = await resListings.json();
           setListings(loadedListings);
           localStorage.setItem('sbp_listings_home', JSON.stringify(loadedListings));
+          isConnected = true;
 
           // Rileva se un parametro URL "?edit=[id]" indica di avviare subito la modifica
           const params = new URLSearchParams(window.location.search);
@@ -788,10 +853,13 @@ export default function Backoffice() {
           const loadedLeads = await resLeads.json();
           setLeads(loadedLeads);
           localStorage.setItem('sbp_leads_home', JSON.stringify(loadedLeads));
+          isConnected = true;
         }
       } catch (err) {
         console.warn("Utilizzo cache leads (fallback):", err);
       }
+
+      setIsDbConnected(isConnected);
     };
 
     loadRealData();
@@ -967,9 +1035,24 @@ export default function Backoffice() {
                   <span className="text-slate-500 text-[10.5px] font-semibold">Sessione Sicura Locale</span>
                 </div>
                 <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight">Benvenuto nel Gestore Studio BP</h2>
-                <p className="text-slate-400 text-xs md:text-sm max-w-xl">
-                  Qui puoi gestire integralmente le schede immobiliari B2C e le attività commerciali B2B. I dati salvati verranno scritti in <code className="text-amber-400 font-mono">localStorage</code> e saranno visibili istantaneamente sia in home page che nelle pagine dettaglio.
-                </p>
+                <div className="flex items-center gap-2.5 mt-2 py-1.5 px-3 bg-slate-900 border border-slate-850 rounded-xl max-w-fit">
+                  <div className={`w-2.5 h-2.5 rounded-full ${
+                    isDbConnected === true 
+                      ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' 
+                      : isDbConnected === false 
+                      ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' 
+                      : 'bg-amber-500 animate-pulse shadow-[0_0_8px_#f59e0b]'
+                  }`} />
+                  <span className="text-[11px] font-bold tracking-wide uppercase text-slate-300">
+                    {isDbConnected === true ? (
+                      <>Connessione Database MySQL: <span className="text-emerald-400 font-extrabold">Attiva & Sincronizzata</span></>
+                    ) : isDbConnected === false ? (
+                      <>Connessione Database MySQL: <span className="text-rose-500 font-extrabold">Sconnessa (Modo Cache Locale)</span></>
+                    ) : (
+                      "Rilevamento connessione database MySQL in corso..."
+                    )}
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-3 shrink-0">
@@ -1349,34 +1432,86 @@ export default function Backoffice() {
                           />
                         </div>
 
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] uppercase font-black text-slate-400 block tracking-wider">Impostazioni Immagine Copertina SBP</label>
-                          <input
-                            type="text"
-                            value={formImmagini[0] || ''}
-                            onChange={(e) => setFormImmagini([e.target.value])}
-                            placeholder="Paster URL di un'immagine o seleziona qui sotto..."
-                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
-                          />
-                        </div>
-                      </div>
+                        <div className="space-y-1.5 md:col-span-2">
+                          <label className="text-[10px] uppercase font-black text-slate-400 block tracking-wider">Gestione Media Fisici (Foto Annuncio)</label>
+                          
+                          {/* File input drag and drop / click */}
+                          <div className="border-2 border-dashed border-slate-800 hover:border-amber-400/50 rounded-2xl p-6 text-center transition-all bg-slate-950/40 relative group cursor-pointer">
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              onChange={handleFileUpload}
+                              disabled={isUploading}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            />
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <div className="p-3 bg-slate-900 border border-slate-800 rounded-2xl text-slate-400 group-hover:text-amber-400 group-hover:border-amber-400/30 transition-colors">
+                                <UploadCloud size={24} className={isUploading ? "animate-bounce text-amber-400" : ""} />
+                              </div>
+                              <span className="text-xs font-black uppercase text-slate-200 tracking-wider">
+                                {isUploading ? "Caricamento in corso..." : "Carica Foto dal Computer"}
+                              </span>
+                              <span className="text-[10px] font-medium text-slate-500">
+                                Trascina qui i file o clicca per sfogliare (Supporta selezione multipla)
+                              </span>
+                            </div>
+                          </div>
 
-                      {/* Selettore rapido foto pre-selezionate */}
-                      <div className="space-y-2 pt-2">
-                        <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Foto stock pronte all&apos;uso (Scegli una per riempire la scheda):</span>
-                        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-                          {STOCK_PHOTOS.map(p => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => handleSelectStockPhoto(p.url)}
-                              className={`p-1.5 bg-slate-950 hover:bg-slate-900 border text-center rounded-lg text-[9px] font-bold text-slate-350 truncate focus:outline-none ${
-                                formImmagini[0] === p.url ? 'border-amber-400 ring-1 ring-amber-400 text-amber-400' : 'border-slate-850'
-                              }`}
-                            >
-                              {p.label}
-                            </button>
-                          ))}
+                          {/* Preview Gallery */}
+                          {formImmagini.length > 0 && (
+                            <div className="space-y-2 pt-3">
+                              <span className="text-[10.5px] text-slate-400 font-extrabold uppercase tracking-wider block">Galleria Immagini Associate ({formImmagini.length}):</span>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                                {formImmagini.map((url, index) => (
+                                  <div key={index} className="relative group aspect-[4/3] rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
+                                    <img
+                                      src={url}
+                                      alt={`Foto ${index + 1}`}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                    {/* Badge Copertina */}
+                                    {index === 0 && (
+                                      <span className="absolute top-2 left-2 px-1.5 py-0.5 bg-amber-500 text-slate-950 font-black uppercase text-[8px] tracking-wider rounded-md shadow">
+                                        Copertina
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveImage(index)}
+                                      className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow"
+                                      title="Rimuovi immagine"
+                                    >
+                                      <Trash2 size={10} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Selettore rapido foto stock */}
+                          <div className="space-y-2 pt-4 border-t border-slate-850/50 mt-4">
+                            <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Selettore rapido foto di stock aggiuntive:</span>
+                            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+                              {STOCK_PHOTOS.map(p => {
+                                const isSelected = formImmagini.includes(p.url);
+                                return (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => handleSelectStockPhoto(p.url)}
+                                    className={`p-1.5 bg-slate-950 hover:bg-slate-900 border text-center rounded-lg text-[9px] font-bold truncate focus:outline-none transition-all ${
+                                      isSelected ? 'border-amber-400 ring-1 ring-amber-400 text-amber-400 bg-amber-500/5' : 'border-slate-850 text-slate-400'
+                                    }`}
+                                  >
+                                    {isSelected ? '✓ ' : ''}{p.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1934,6 +2069,43 @@ export default function Backoffice() {
         )}
 
       </main>
+
+      {deleteConfirmId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-red-950 p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-500">
+              <div className="p-2 bg-red-950/40 rounded-xl border border-red-900/40">
+                <Trash2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-base font-black uppercase tracking-wider text-slate-100">Rimuovere definitivamente?</h3>
+                <p className="text-[10px] text-red-400 font-mono tracking-wide uppercase">Operazione Irreversibile</p>
+              </div>
+            </div>
+            
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Stai per eliminare definitivamente l&apos;annuncio <span className="text-white font-bold">#{deleteConfirmId}</span> dal database MySQL. Tutti i dettagli associati verranno rimossi permanentemente. Sei sicuro di procedere?
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmId(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-red-600/10 transition-all cursor-pointer"
+              >
+                Sì, elimina annuncio
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="bg-slate-950 border-t border-slate-900 py-8 px-4 text-center text-slate-500 text-[10.5px] font-mono mt-auto uppercase tracking-widest">
         <span>Amministrazione Integrata Studio BP Italia S.r.l. — Console Editore v2.6 -- All Rights Reserved © 2026</span>

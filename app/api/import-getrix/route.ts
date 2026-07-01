@@ -61,6 +61,15 @@ interface Listing {
 // Funzione helper per pulire e formattare le stringhe
 const sanitizeString = (str: any): string => {
   if (!str) return '';
+  if (typeof str === 'object') {
+    if ('#text' in str && str['#text'] !== undefined && str['#text'] !== null) {
+      return String(str['#text']).trim();
+    }
+    if ('text' in str && str.text !== undefined && str.text !== null) {
+      return String(str.text).trim();
+    }
+    return '';
+  }
   if (typeof str !== 'string') return String(str);
   return str.trim();
 };

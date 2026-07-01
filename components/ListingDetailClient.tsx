@@ -130,13 +130,14 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
 
   const isB2C = listing.categoria === 'IMMOBILE';
 
-  // Generiamo un set di immagini coerenti per riempire la galleria asimmetrica
-  const galleryImages = [
-    listing.immagini[0] || 'https://picsum.photos/seed/duomo/1200/800',
-    `${listing.immagini[0] || 'https://picsum.photos/seed/duomo/1200/800'}?v=1`,
-    `${listing.immagini[0] || 'https://picsum.photos/seed/duomo/1200/800'}?v=2`,
-    `${listing.immagini[0] || 'https://picsum.photos/seed/duomo/1200/800'}?v=3`,
-  ];
+  // Usiamo solo le vere immagini associate all'annuncio
+  const galleryImages = (listing.immagini && listing.immagini.length > 0)
+    ? listing.immagini
+    : [
+        'https://picsum.photos/seed/duomo/1200/800',
+        'https://picsum.photos/seed/villa/1200/800',
+        'https://picsum.photos/seed/cafe/1200/800'
+      ];
 
   const formattedPrezzo = listing.prezzo.toLocaleString('it-IT');
 
@@ -243,85 +244,163 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
       {/* 1. TOP SECTION: GALLERIA FOTOGRAFICA ASIMMETRICA */}
       <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white" id="asymmetric-gallery">
         {/* Desktop Layout Grid (>= 1024px) */}
-        <div className="hidden lg:grid grid-cols-12 gap-2 h-[450px] p-2">
-          {/* Main big image */}
-          <div 
-            className="col-span-8 relative rounded-l-xl overflow-hidden cursor-pointer group"
-            onClick={() => {
-              setActiveImageIdx(0);
-              setIsGalleryModalOpen(true);
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src={galleryImages[0]} 
-              alt={`${listing.titolo} - Foto Principale`}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
-            <div className="absolute top-4 left-4 flex gap-2">
-              <span className={`px-3 py-1 text-xs font-black tracking-widest uppercase rounded-full text-white shadow-md ${
-                listing.tipo_contratto === 'VENDITA' ? 'bg-slate-900 border border-slate-800' : 'bg-red-600'
-              }`}>
-                {listing.tipo_contratto}
-              </span>
-              <span className="px-3 py-1 text-xs font-black tracking-widest uppercase rounded-full bg-amber-400 text-slate-950 shadow-md">
-                {isB2C ? 'B2C • IMMOBILE' : 'B2B • COMMERCIALE'}
-              </span>
-            </div>
-          </div>
-
-          {/* Side column grid with stacked smaller images */}
-          <div className="col-span-4 flex flex-col gap-2">
+        {galleryImages.length >= 3 ? (
+          <div className="hidden lg:grid grid-cols-12 gap-2 h-[450px] p-2">
+            {/* Main big image */}
             <div 
-              className="h-[219px] relative rounded-tr-xl overflow-hidden cursor-pointer group"
+              className="col-span-8 relative rounded-l-xl overflow-hidden cursor-pointer group"
               onClick={() => {
-                setActiveImageIdx(1);
+                setActiveImageIdx(0);
                 setIsGalleryModalOpen(true);
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
-                src={galleryImages[1]} 
-                alt={`${listing.titolo} - Interno 1`}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
+                src={galleryImages[0]} 
+                alt={`${listing.titolo} - Foto Principale`}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+              <div className="absolute top-4 left-4 flex gap-2">
+                <span className={`px-3 py-1 text-xs font-black tracking-widest uppercase rounded-full text-white shadow-md ${
+                  listing.tipo_contratto === 'VENDITA' ? 'bg-slate-900 border border-slate-800' : 'bg-red-600'
+                }`}>
+                  {listing.tipo_contratto}
+                </span>
+                <span className="px-3 py-1 text-xs font-black tracking-widest uppercase rounded-full bg-amber-400 text-slate-950 shadow-md">
+                  {isB2C ? 'B2C • IMMOBILE' : 'B2B • COMMERCIALE'}
+                </span>
+              </div>
             </div>
 
-            <div 
-              className="h-[219px] relative rounded-br-xl overflow-hidden cursor-pointer group"
-              onClick={() => {
-                setActiveImageIdx(2);
-                setIsGalleryModalOpen(true);
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src={galleryImages[2]} 
-                alt={`${listing.titolo} - Interno 2`}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
-              
-              {/* Button "Vedi tutte le foto" Overlay */}
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveImageIdx(0);
+            {/* Side column grid with stacked smaller images */}
+            <div className="col-span-4 flex flex-col gap-2">
+              <div 
+                className="h-[219px] relative rounded-tr-xl overflow-hidden cursor-pointer group"
+                onClick={() => {
+                  setActiveImageIdx(1);
                   setIsGalleryModalOpen(true);
                 }}
-                className="absolute bottom-4 right-4 bg-slate-950/90 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider uppercase border border-slate-800 shadow-lg flex items-center gap-2 transition-all cursor-pointer"
               >
-                <ExternalLink size={13} className="text-amber-400" />
-                Vedi tutte le foto
-              </button>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src={galleryImages[1]} 
+                  alt={`${listing.titolo} - Interno 1`}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+              </div>
+
+              <div 
+                className="h-[219px] relative rounded-br-xl overflow-hidden cursor-pointer group"
+                onClick={() => {
+                  setActiveImageIdx(2);
+                  setIsGalleryModalOpen(true);
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src={galleryImages[2]} 
+                  alt={`${listing.titolo} - Interno 2`}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+                
+                {/* Button "Vedi tutte le foto" Overlay */}
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIdx(0);
+                    setIsGalleryModalOpen(true);
+                  }}
+                  className="absolute bottom-4 right-4 bg-slate-950/90 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider uppercase border border-slate-800 shadow-lg flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <ExternalLink size={13} className="text-amber-400" />
+                  Vedi tutte le foto ({galleryImages.length})
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        ) : galleryImages.length === 2 ? (
+          <div className="hidden lg:grid grid-cols-2 gap-2 h-[450px] p-2">
+            {galleryImages.map((img, idx) => (
+              <div 
+                key={idx}
+                className={`relative overflow-hidden cursor-pointer group ${idx === 0 ? 'rounded-l-xl' : 'rounded-r-xl'}`}
+                onClick={() => {
+                  setActiveImageIdx(idx);
+                  setIsGalleryModalOpen(true);
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src={img} 
+                  alt={`${listing.titolo} - Foto ${idx + 1}`}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+                {idx === 0 && (
+                  <div className="absolute top-4 left-4 flex gap-2">
+                    <span className={`px-3 py-1 text-xs font-black tracking-widest uppercase rounded-full text-white shadow-md ${
+                      listing.tipo_contratto === 'VENDITA' ? 'bg-slate-900 border border-slate-800' : 'bg-red-600'
+                    }`}>
+                      {listing.tipo_contratto}
+                    </span>
+                    <span className="px-3 py-1 text-xs font-black tracking-widest uppercase rounded-full bg-amber-400 text-slate-950 shadow-md">
+                      {isB2C ? 'B2C • IMMOBILE' : 'B2B • COMMERCIALE'}
+                    </span>
+                  </div>
+                )}
+                {idx === 1 && (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveImageIdx(0);
+                      setIsGalleryModalOpen(true);
+                    }}
+                    className="absolute bottom-4 right-4 bg-slate-950/90 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-extrabold tracking-wider uppercase border border-slate-800 shadow-lg flex items-center gap-2 transition-all cursor-pointer"
+                  >
+                    <ExternalLink size={13} className="text-amber-400" />
+                    Vedi tutte le foto (2)
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="hidden lg:grid grid-cols-1 gap-2 h-[450px] p-2">
+            <div 
+              className="relative rounded-xl overflow-hidden cursor-pointer group"
+              onClick={() => {
+                setActiveImageIdx(0);
+                setIsGalleryModalOpen(true);
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img 
+                src={galleryImages[0]} 
+                alt={`${listing.titolo} - Foto Principale`}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+              <div className="absolute top-4 left-4 flex gap-2">
+                <span className={`px-3 py-1 text-xs font-black tracking-widest uppercase rounded-full text-white shadow-md ${
+                  listing.tipo_contratto === 'VENDITA' ? 'bg-slate-900 border border-slate-800' : 'bg-red-600'
+                }`}>
+                  {listing.tipo_contratto}
+                </span>
+                <span className="px-3 py-1 text-xs font-black tracking-widest uppercase rounded-full bg-amber-400 text-slate-950 shadow-md">
+                  {isB2C ? 'B2C • IMMOBILE' : 'B2B • COMMERCIALE'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Mobile Horizontal Carousel Slider (< 1024px) */}
         <div className="block lg:hidden relative">
