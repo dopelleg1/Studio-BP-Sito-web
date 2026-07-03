@@ -238,3 +238,39 @@ model RecurringTransaction {
   @@map("recurring_transactions")
   @@index([accountId])
 }
+
+// ==========================================
+// Modelli dell'app Segnalatori locale (condivisi nel database)
+// ==========================================
+
+model contocorrente {
+  id            Int           @id @default(autoincrement())
+  nome          String
+  saldoIniziale Float
+  created_at    DateTime      @default(now())
+  transazione   transazione[]
+}
+
+model segnalazione {
+  id                    Int      @id @default(autoincrement())
+  categoria_immobile    String?
+  citta_cap             String
+  nome_proprietario     String
+  telefono_proprietario String?
+  note                  String?  @db.Text
+  stato                 String   @default("Inviata")
+  created_at            DateTime @default(now())
+}
+
+model transazione {
+  id            Int           @id @default(autoincrement())
+  contoId       Int
+  descrizione   String
+  importo       Float
+  data          DateTime      @default(now())
+  created_at    DateTime      @default(now())
+  contocorrente contocorrente @relation(fields: [contoId], references: [id], onDelete: Cascade, map: "Transazione_contoId_fkey")
+
+  @@index([contoId], map: "Transazione_contoId_fkey")
+}
+
