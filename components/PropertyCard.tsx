@@ -148,10 +148,10 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="flex gap-2">
           <Link
             href={`/annunci/${listing.id}`}
-            className="bg-white hover:bg-slate-100 text-primary border border-slate-200 hover:border-slate-350 font-black text-[10.5px] uppercase tracking-wide py-2.5 rounded-xl flex items-center justify-center gap-1 transition-all text-center"
+            className="flex-1 bg-white hover:bg-slate-100 text-primary border border-slate-200 hover:border-slate-350 font-black text-[10.5px] uppercase tracking-wide py-2.5 rounded-xl flex items-center justify-center gap-1 transition-all text-center"
           >
             <span>Scopri Dettagli</span>
           </Link>
@@ -159,11 +159,26 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
           <button 
             type="button"
             onClick={() => onSelect?.(listing.id)}
-            className="bg-accent hover:bg-amber-500 text-primary font-black text-[10.5px] uppercase tracking-wide py-2.5 rounded-xl flex items-center justify-center gap-1 transition-all shadow-xs cursor-pointer"
+            className="flex-1 bg-accent hover:bg-amber-500 text-primary font-black text-[10.5px] uppercase tracking-wide py-2.5 rounded-xl flex items-center justify-center gap-1 transition-all shadow-xs cursor-pointer"
           >
             <span>Richiedi Info</span>
             <ArrowRight size={11} />
           </button>
+
+          {/* Pulsante WhatsApp Diretto */}
+          <a
+            href={`https://wa.me/393792319582?text=${encodeURIComponent(
+              `Salve Studio BP, vorrei maggiori informazioni per l'immobile: *${titleSanitized}* (Rif: ${listing.riferimento || 'N/D'} - ID: #${listing.id}) da € ${formattedPrezzo}.`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Contatta via WhatsApp"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl flex items-center justify-center transition-all shadow-xs shrink-0 cursor-pointer"
+          >
+            <svg className="w-4 h-4 fill-current text-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.517 2.266 2.27 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.63 2.028 14.16 1.001 11.53 1.002c-5.437 0-9.862 4.371-9.865 9.801a9.74 9.74 0 0.0 1.502 4.845L1.921 20.62l5.064-1.32c1.547.84 3.097 1.272 4.662 1.272l.001-.018zM17.47 14.39c-.326-.162-1.926-.948-2.221-1.055-.297-.108-.513-.162-.73.162-.216.324-.838 1.055-1.027 1.27-.189.217-.378.243-.704.082-.325-.162-1.372-.505-2.613-1.613-.966-.862-1.618-1.927-1.808-2.251-.19-.324-.02-.499.143-.66.147-.145.325-.378.487-.568.162-.189.216-.324.325-.54.109-.217.054-.405-.027-.568-.08-.162-.73-1.758-1.002-2.407-.265-.636-.53-.55-.73-.56-.19-.01-.405-.01-.62-.01-.215 0-.567.08-.864.405-.297.324-1.135 1.108-1.135 2.703 0 1.594 1.162 3.134 1.324 3.35.162.216 2.284 3.488 5.533 4.894.773.334 1.377.534 1.847.683.777.247 1.484.212 2.04.13.62-.092 1.925-.786 2.196-1.517.27-.73.27-1.353.19-1.485-.08-.135-.297-.216-.622-.38z"/>
+            </svg>
+          </a>
         </div>
       </div>
     </div>
