@@ -40,6 +40,8 @@ interface Listing {
   data_creazione: string;
   riferimento?: string;
   getrix_id?: string;
+  comune?: string;
+  zona?: string;
 }
 
 // Data seed duplicato qui sul server-side per l'id routing dinamico
@@ -189,6 +191,8 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
         data_creazione: dbl.data_creazione.toISOString(),
         riferimento: dbl.riferimento || undefined,
         getrix_id: dbl.getrix_id || undefined,
+        comune: dbl.comune || undefined,
+        zona: dbl.zona || undefined,
         propertyDetails: dbl.propertyDetails ? {
           mq: Number(dbl.propertyDetails.mq),
           stanze: Number(dbl.propertyDetails.stanze),

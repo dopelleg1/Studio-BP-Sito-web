@@ -76,6 +76,8 @@ interface Listing {
   spese_condominiali?: string;
   riferimento?: string;
   getrix_id?: string;
+  comune?: string;
+  zona?: string;
 }
 
 interface ListingDetailClientProps {
@@ -759,10 +761,25 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
             </p>
 
             <div className="h-64 bg-slate-950 border border-slate-800 rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 text-white font-mono text-[10px]">
-              <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:16px_16px] -z-10" />
+              {/* Mappa reale Google Maps in background stilizzata dark-mode */}
+              <iframe
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                  listing.zona && listing.comune
+                    ? `${listing.zona}, ${listing.comune}`
+                    : listing.comune
+                    ? listing.comune
+                    : listing.indirizzo
+                )}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                className="absolute inset-0 w-full h-full border-0 -z-10 opacity-55 grayscale contrast-115 pointer-events-none select-none"
+                allowFullScreen={false}
+                loading="lazy"
+                title="Mappa di Posizione"
+              />
+
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none -z-10" />
               
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center space-y-2.5 z-10 p-4 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800 max-w-sm">
-                <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-amber-400 animate-pulse mx-auto flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 rounded-full bg-slate-850 border-2 border-amber-400 animate-pulse mx-auto flex items-center justify-center shadow-lg">
                   <MapPin size={18} className="text-amber-400" />
                 </div>
                 <p className="font-extrabold uppercase text-[10px] tracking-widest text-white leading-normal">
@@ -774,12 +791,12 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
               </div>
 
               {/* Decorazioni GPS */}
-              <div className="text-slate-600 flex justify-between w-full pt-1">
+              <div className="text-slate-400 flex justify-between w-full pt-1 pointer-events-none z-10">
                 <span>COORD REF SYSTEM</span>
                 <span>WGS84 GEODETIC</span>
               </div>
               
-              <div className="flex justify-between items-end mt-auto pt-4 border-t border-slate-850 text-slate-500 uppercase">
+              <div className="flex justify-between items-end mt-auto pt-4 border-t border-slate-800/80 text-slate-400 uppercase pointer-events-none z-10">
                 <span>GEOSPATIAL SECURE GRAPH</span>
                 <span>45.4642° N / 9.1900° E</span>
               </div>
