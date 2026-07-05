@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Search, ChevronDown, Building2, Briefcase } from 'lucide-react';
 
 interface SearchWidgetProps {
+  activeTab: 'IMMOBILE' | 'BUSINESS';
+  onChangeTab: (tab: 'IMMOBILE' | 'BUSINESS') => void;
   onSearch: (filters: {
     category: 'IMMOBILE' | 'BUSINESS';
     tipologiaOrSettore: string;
@@ -12,8 +14,7 @@ interface SearchWidgetProps {
   }) => void;
 }
 
-export default function SearchWidget({ onSearch }: SearchWidgetProps) {
-  const [activeTab, setActiveTab] = useState<'IMMOBILE' | 'BUSINESS'>('IMMOBILE');
+export default function SearchWidget({ activeTab, onChangeTab, onSearch }: SearchWidgetProps) {
 
   // Stati dropdown per Immobili
   const [tipoImmobile, setTipoImmobile] = useState('Tutti');
@@ -43,7 +44,7 @@ export default function SearchWidget({ onSearch }: SearchWidgetProps) {
       <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full max-w-sm mb-6">
         <button
           type="button"
-          onClick={() => setActiveTab('IMMOBILE')}
+          onClick={() => onChangeTab('IMMOBILE')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
             activeTab === 'IMMOBILE'
               ? 'bg-accent text-white shadow-md shadow-accent/20'
@@ -55,7 +56,7 @@ export default function SearchWidget({ onSearch }: SearchWidgetProps) {
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('BUSINESS')}
+          onClick={() => onChangeTab('BUSINESS')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
             activeTab === 'BUSINESS'
               ? 'bg-accent text-white shadow-md shadow-accent/20'

@@ -54,6 +54,7 @@ model Listing {
   immagini        Json
   
   data_creazione  DateTime         @default(now())
+  in_evidenza     Boolean          @default(false)
 
   // Campi Getrix e gestionali Studio BP Italia aggiuntivi
   riferimento           String?          @db.VarChar(50)

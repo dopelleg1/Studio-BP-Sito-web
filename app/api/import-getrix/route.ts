@@ -147,6 +147,45 @@ function parseInfoFromText(text: string) {
   return info;
 }
 
+// Estrae in modo intelligente il codice di riferimento Studio BP (Att.XXXX / Imm.XXXX) dall'XML o dalla descrizione
+function extractReference(item: any, descrizione: string): string | null {
+  const getValidCode = (str: string): string | null => {
+    if (!str) return null;
+    const clean = str.trim();
+    // Prova prima con il formato att.xxx.xxx o imm.xxx.xxx (es. att.cin.584)
+    const matchDotted = clean.match(/^([a-zA-Z]{3,4}\.[a-zA-Z0-9.]+)/i);
+    if (matchDotted) return matchDotted[1].replace(/\s+/g, '');
+    
+    // Prova con il formato Att.1547 o Imm.1726 (case-insensitive)
+    const matchStandard = clean.match(/^([a-zA-Z]{3,4}\.?[0-9]+)/i);
+    if (matchStandard) return matchStandard[1].replace(/\s+/g, '');
+    
+    return null;
+  };
+
+  // 1. Controlla il campo Riferimento XML
+  const rawRiferimento = sanitizeString(item.Riferimento);
+  const codeFromRef = getValidCode(rawRiferimento);
+  if (codeFromRef) return codeFromRef;
+
+  // 2. Controlla la prima parola della descrizione (esclude _ o spazi)
+  if (descrizione) {
+    const firstWordDesc = descrizione.trim().split(/[\s_]+/)[0];
+    const codeFromDesc = getValidCode(firstWordDesc);
+    if (codeFromDesc) return codeFromDesc;
+  }
+
+  // 3. Controlla il campo Note dell'XML
+  const noteVal = sanitizeString(item.Note || item.NoteInterne || item.NoteModifica || item.Commenti || '');
+  if (noteVal) {
+    const firstWordNote = noteVal.trim().split(/[\s_]+/)[0];
+    const codeFromNote = getValidCode(firstWordNote);
+    if (codeFromNote) return codeFromNote;
+  }
+
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -248,23 +287,17 @@ export async function POST(req: NextRequest) {
         titolo = sanitizeString(item.Descrizioni.Descrizione?.Titolo || '');
       }
 
-      // Estrazione del Riferimento Agenzia (Codice annuncio agenzia, es: att.cin.410)
+      // Estrazione del Riferimento Agenzia (Codice annuncio agenzia, es: att.cin.410 o Att.1547)
       const rawRiferimento = sanitizeString(item.Riferimento);
-      // Puliamo il riferimento estraendo la prima parola (es: "att.cin.410 (1859311)" -> "att.cin.410")
-      const refMatch = rawRiferimento.match(/^([^\s(]+)/);
-      let cleanRiferimento = refMatch ? refMatch[1] : rawRiferimento;
+      let cleanRiferimento = extractReference(item, descrizione);
 
-      // Se il riferimento non inizia con "att" o "imm" (case-insensitive), cerchiamo se è presente nella prima parola della descrizione
-      const hasValidRefPrefix = cleanRiferimento && /^(att|imm)/i.test(cleanRiferimento);
-      if (!hasValidRefPrefix && descrizione) {
-        // Cerca all'inizio della descrizione parole come "Att.1544", "att.cin.584", "imm.123", "Att. 1544"
-        const descMatch = descrizione.trim().match(/^([a-zA-Z]{3,4}\.?\s*[0-9]+(?:\.[0-9]+)?)/i) || descrizione.trim().match(/^([a-zA-Z]{3,4}\.[a-zA-Z0-9.]+)/i);
-        if (descMatch) {
-          cleanRiferimento = descMatch[1].replace(/\s+/g, '').toLowerCase();
-        }
+      // Fallback 1: se non abbiamo trovato un codice att/imm specifico, ma c'è un Riferimento generico (es. 147/2024)
+      if (!cleanRiferimento && rawRiferimento) {
+        const refMatch = rawRiferimento.match(/^([^\s(]+)/);
+        cleanRiferimento = refMatch ? refMatch[1] : rawRiferimento;
       }
 
-      // Fallback finale se non abbiamo ancora nulla di valido
+      // Fallback 2: se non abbiamo ancora nulla di valido, usa getrix.IDImmobile
       if (!cleanRiferimento) {
         cleanRiferimento = `getrix.${getrixId}`;
       }
@@ -440,9 +473,9 @@ export async function POST(req: NextRequest) {
 
     for (const listingsPayload of importedListings) {
       try {
-        // Trova se esiste già un annuncio con lo stesso codice di riferimento
+        // Trova se esiste già un annuncio con lo stesso Getrix ID
         const existing = await db.listing.findFirst({
-          where: { riferimento: listingsPayload.riferimento }
+          where: { getrix_id: listingsPayload.getrix_id }
         });
 
         if (existing) {
@@ -458,6 +491,7 @@ export async function POST(req: NextRequest) {
                 tipo_contratto: listingsPayload.tipo_contratto,
                 categoria: listingsPayload.categoria,
                 immagini: listingsPayload.immagini,
+                riferimento: listingsPayload.riferimento, // Aggiorna il codice di riferimento
                 comune: listingsPayload.comune,
                 zona: listingsPayload.zona,
                 tipologia: listingsPayload.tipologia,

@@ -66,6 +66,7 @@ interface Listing {
   propertyDetails?: PropertyDetails;
   businessDetails?: BusinessDetails;
   data_creazione: string;
+  in_evidenza?: boolean;
   
   // Campi Getrix
   riferimento?: string;
@@ -252,6 +253,9 @@ export default function Homepage() {
     budget: string;
   } | null>(null);
 
+  // Categoria attiva correntemente selezionata nel widget (permette di allineare gli annunci in evidenza)
+  const [activeCategory, setActiveCategory] = useState<'IMMOBILE' | 'BUSINESS'>('IMMOBILE');
+
   // Stato Modale Lead
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [isSubmitLeadSuccess, setIsSubmitLeadSuccess] = useState(false);
@@ -342,6 +346,7 @@ export default function Homepage() {
             localiOrFatturato: 'Tutti',
             budget: 'Qualsiasi'
           });
+          setActiveCategory('IMMOBILE');
           setTimeout(() => {
             const element = document.getElementById('search-results-section');
             if (element) {
@@ -358,6 +363,7 @@ export default function Homepage() {
             localiOrFatturato: 'Qualsiasi',
             budget: 'Qualsiasi'
           });
+          setActiveCategory('BUSINESS');
           setTimeout(() => {
             const element = document.getElementById('search-results-section');
             if (element) {
@@ -390,6 +396,7 @@ export default function Homepage() {
     budget: string;
   }) => {
     setCurrentFilters(filters);
+    setActiveCategory(filters.category);
     showToast(`Dati filtrati con successo: Categoria: ${filters.category} • Filtri applicati.`);
     
     // Auto-scroll fino alla sezione featured o della ricerca
@@ -553,8 +560,12 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
     return true;
   });
 
-  // Lista fissa degli annunci rilevanti (Primi 3 del database da mostrare per default come "Featured Listings"
-  const defaultFeaturedListings = listings.slice(0, 3);
+  // Lista degli annunci in evidenza per la categoria attiva (con fallback sui primi annunci della stessa categoria se < 3)
+  const featuredFilteredListings = listings.filter(l => l.in_evidenza && l.categoria === activeCategory);
+  const defaultFeaturedListings = [
+    ...featuredFilteredListings,
+    ...listings.filter(l => !l.in_evidenza && l.categoria === activeCategory)
+  ].slice(0, 3);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-900">
@@ -596,6 +607,7 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
                 localiOrFatturato: 'Tutti',
                 budget: 'Qualsiasi'
               });
+              setActiveCategory('IMMOBILE');
               setTimeout(() => {
                 const element = document.getElementById('search-results-section');
                 if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -613,6 +625,7 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
                 localiOrFatturato: 'Qualsiasi',
                 budget: 'Qualsiasi'
               });
+              setActiveCategory('BUSINESS');
               setTimeout(() => {
                 const element = document.getElementById('search-results-section');
                 if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -904,7 +917,11 @@ model Lead {
       {/* 2. COMPONENTE INTERATTIVO SEARCH WIDGET CORRELATO AL FLUSSO */}
       <section className="relative px-4 pb-12">
         <div className="max-w-7xl mx-auto">
-          <SearchWidget onSearch={handleSearchSubmit} />
+          <SearchWidget 
+            activeTab={activeCategory} 
+            onChangeTab={setActiveCategory} 
+            onSearch={handleSearchSubmit} 
+          />
         </div>
       </section>
 

@@ -100,6 +100,33 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const numericId = Number(id);
+    if (isNaN(numericId)) {
+      return NextResponse.json({ error: 'ID non valido' }, { status: 400 });
+    }
+
+    const { in_evidenza } = await req.json();
+
+    const updated = await db.listing.update({
+      where: { id: numericId },
+      data: {
+        in_evidenza: Boolean(in_evidenza),
+      },
+    });
+
+    return NextResponse.json({ success: true, updated });
+  } catch (error: any) {
+    console.error('Errore durante il patch di in_evidenza:', error);
+    return NextResponse.json({ error: error.message || 'Errore interno' }, { status: 500 });
+  }
+}
+
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }

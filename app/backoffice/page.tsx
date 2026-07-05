@@ -30,7 +30,8 @@ import {
   HelpCircle,
   Clock,
   LayoutDashboard,
-  UploadCloud
+  UploadCloud,
+  Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoRound, LogoRectangular } from '@/components/Logo';
@@ -83,6 +84,7 @@ interface Listing {
   propertyDetails?: PropertyDetails;
   businessDetails?: BusinessDetails;
   data_creazione: string;
+  in_evidenza?: boolean;
   
   // Campi Getrix
   riferimento?: string;
@@ -519,6 +521,32 @@ export default function Backoffice() {
       showToast(`Errore: ${err.message || "Impossibile eliminare l'annuncio"}`);
     } finally {
       setDeleteConfirmId(null);
+    }
+  };
+
+  // Attiva/disattiva lo stato 'in evidenza' di un annuncio su MySQL
+  const handleToggleFeatured = async (listingId: number, currentStatus: boolean) => {
+    try {
+      const nextStatus = !currentStatus;
+      const response = await fetch(`/api/listings/${listingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ in_evidenza: nextStatus })
+      });
+      if (!response.ok) throw new Error("Errore durante l'aggiornamento dello stato in evidenza");
+
+      const updated = listings.map(l => {
+        if (l.id === listingId) {
+          return { ...l, in_evidenza: nextStatus };
+        }
+        return l;
+      });
+      setListings(updated);
+      localStorage.setItem('sbp_listings_home', JSON.stringify(updated));
+      showToast(nextStatus ? 'Annuncio impostato in evidenza con successo.' : 'Annuncio rimosso dagli annunci in evidenza.');
+    } catch (err: any) {
+      console.error(err);
+      showToast(`Errore: ${err.message || 'Impossibile aggiornare lo stato in evidenza'}`);
     }
   };
 
@@ -1348,7 +1376,7 @@ export default function Backoffice() {
                         {editingListing ? 'Modalità Modifica' : 'Procedura Nuovo Mandato'}
                       </span>
                       <h3 className="text-lg font-black uppercase text-white mt-0.5">
-                        {editingListing ? `Modifica Scheda #${editingListing.id}` : 'Inserimento Nuova Scheda Bene'}
+                        {editingListing ? `Modifica Scheda #${editingListing.id}${editingListing.riferimento ? ` (${cleanVal(editingListing.riferimento).toUpperCase()})` : ''}` : 'Inserimento Nuova Scheda Bene'}
                       </h3>
                     </div>
                     <button
@@ -1973,10 +2001,21 @@ export default function Backoffice() {
                                 </Link>
                                 <button
                                   onClick={() => handleEditClick(l)}
-                                  className="p-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 hover:text-white rounded-lg border border-slate-850 cursor-pointer"
+                                  className="p-1.5 bg-slate-900 hover:bg-slate-850 text-amber-400 hover:text-white rounded-lg border border-slate-800 cursor-pointer"
                                   title="Modifica scheda"
                                 >
                                   <Edit2 size={12} />
+                                </button>
+                                <button
+                                  onClick={() => handleToggleFeatured(l.id, l.in_evidenza || false)}
+                                  className={`p-1.5 rounded-lg border cursor-pointer transition-all ${
+                                    l.in_evidenza
+                                      ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900 hover:bg-emerald-900 hover:text-white'
+                                      : 'bg-slate-900 text-slate-500 border-slate-800 hover:text-slate-200 hover:bg-slate-850'
+                                  }`}
+                                  title={l.in_evidenza ? "In evidenza (Attivo)" : "Imposta in evidenza"}
+                                >
+                                  <Star size={12} className={l.in_evidenza ? 'fill-current' : ''} />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteListing(l.id)}
