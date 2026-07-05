@@ -560,6 +560,13 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
     return true;
   });
 
+  // Ordina i risultati filtrati per mostrare gli annunci in evidenza all'inizio
+  const sortedFilteredListings = [...filteredListings].sort((a, b) => {
+    const aEv = a.in_evidenza ? 1 : 0;
+    const bEv = b.in_evidenza ? 1 : 0;
+    return bEv - aEv;
+  });
+
   // Lista degli annunci in evidenza per la categoria attiva (con fallback sui primi annunci della stessa categoria se < 3)
   const featuredFilteredListings = listings.filter(l => l.in_evidenza && l.categoria === activeCategory);
   const defaultFeaturedListings = [
@@ -954,7 +961,7 @@ model Lead {
 
         {currentFilters && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredListings.map((listing) => {
+            {sortedFilteredListings.map((listing) => {
               const isImmobile = listing.categoria === 'IMMOBILE';
               return (
                 <motion.div
