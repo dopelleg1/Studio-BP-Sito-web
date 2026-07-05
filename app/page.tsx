@@ -932,6 +932,51 @@ model Lead {
         </div>
       </section>
 
+      {/* 3. FEATURED LISTINGS GRID (3 CARD STATISTICHE) */}
+      <section id="featured-section" className="px-4 py-16 bg-white border-t border-b border-slate-100">
+        <div className="max-w-7xl mx-auto">
+          
+          <div className="text-center space-y-2 mb-12">
+            <p className="text-xs font-extrabold uppercase tracking-widest text-emerald-800">Selezionati per voi</p>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Annunci in Evidenza</h2>
+            <div className="w-12 h-1 bg-amber-500 mx-auto rounded-full mt-2" />
+            <p className="text-slate-500 text-xs font-semibold max-w-lg mx-auto">
+              Scorri le ultime proposte accreditate dai nostri broker. Clicca su &quot;Invia Richiesta Informazioni&quot; per simulare l&apos;inserimento di un lead nel database.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {defaultFeaturedListings.map((listing) => {
+              const isB2C = listing.categoria === 'IMMOBILE';
+              return (
+                <div key={listing.id} className="h-full">
+                  {isB2C ? (
+                    <PropertyCard 
+                      listing={listing} 
+                      details={listing.propertyDetails!} 
+                      onSelect={(id) => {
+                        const found = listings.find(l => l.id === id);
+                        if (found) setSelectedListing(found);
+                      }}
+                    />
+                  ) : (
+                    <BusinessCard 
+                      listing={listing} 
+                      details={listing.businessDetails!} 
+                      onSelect={(id) => {
+                        const found = listings.find(l => l.id === id);
+                        if (found) setSelectedListing(found);
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+      </section>
+
       {/* RISULTATI FILTRATI IN DIGITALE MEDIANTE LA RICERCA DINAMICA */}
       <section id="search-results-section" className="scroll-mt-24 px-4 py-8 max-w-7xl mx-auto w-full">
         {currentFilters && (
@@ -1001,51 +1046,6 @@ model Lead {
             <p className="text-xs text-slate-400 mt-0.5">Prova a rilassare i filtri di budget o di tipologia per trovare alternative commerciali.</p>
           </div>
         )}
-      </section>
-
-      {/* 3. FEATURED LISTINGS GRID (3 CARD STATISTICHE) */}
-      <section id="featured-section" className="px-4 py-16 bg-white border-t border-b border-slate-100">
-        <div className="max-w-7xl mx-auto">
-          
-          <div className="text-center space-y-2 mb-12">
-            <p className="text-xs font-extrabold uppercase tracking-widest text-emerald-800">Selezionati per voi</p>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Annunci in Evidenza</h2>
-            <div className="w-12 h-1 bg-amber-500 mx-auto rounded-full mt-2" />
-            <p className="text-slate-500 text-xs font-semibold max-w-lg mx-auto">
-              Scorri le ultime proposte accreditate dai nostri broker. Clicca su &quot;Invia Richiesta Informazioni&quot; per simulare l&apos;inserimento di un lead nel database.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {defaultFeaturedListings.map((listing) => {
-              const isB2C = listing.categoria === 'IMMOBILE';
-              return (
-                <div key={listing.id} className="h-full">
-                  {isB2C ? (
-                    <PropertyCard 
-                      listing={listing} 
-                      details={listing.propertyDetails!} 
-                      onSelect={(id) => {
-                        const found = listings.find(l => l.id === id);
-                        if (found) setSelectedListing(found);
-                      }}
-                    />
-                  ) : (
-                    <BusinessCard 
-                      listing={listing} 
-                      details={listing.businessDetails!} 
-                      onSelect={(id) => {
-                        const found = listings.find(l => l.id === id);
-                        if (found) setSelectedListing(found);
-                      }}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-        </div>
       </section>
 
       {/* METODO STUDIO BP ITALIA & TRUST SIGNALS */}
