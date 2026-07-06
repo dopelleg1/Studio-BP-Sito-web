@@ -23,13 +23,16 @@ import {
   ChevronRight,
   ShieldCheck,
   Check,
-  Send
+  Send,
+  Globe,
+  Smartphone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import SearchWidget from '@/components/SearchWidget';
 import PropertyCard from '@/components/PropertyCard';
 import BusinessCard from '@/components/BusinessCard';
 import { LogoRound, LogoRectangular } from '@/components/Logo';
+import GdprBanner from '@/components/GdprBanner';
 
 // Tipi definiti coerenti con lo schema Prisma
 type TipoContratto = 'VENDITA' | 'AFFITTO';
@@ -577,6 +580,34 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-900">
       
+      {/* Top Info Bar */}
+      <div className="bg-slate-950 text-slate-400 text-[10px] sm:text-xs font-semibold py-2.5 px-4 md:px-8 border-b border-slate-900 flex flex-col md:flex-row justify-between items-center gap-2 select-none">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          <span className="flex items-center gap-1.5">
+            <MapPin size={11} className="text-amber-500 shrink-0" />
+            <span>Via Finalmarina, 23, 10126 Torino TO</span>
+          </span>
+          <span className="hidden md:inline text-slate-800">|</span>
+          <span className="flex items-center gap-1.5">
+            <Globe size={11} className="text-amber-500 shrink-0" />
+            <a href="https://www.studiobpitalia.it" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              www.studiobpitalia.it
+            </a>
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5">
+            <Phone size={11} className="text-amber-500 shrink-0" />
+            <a href="tel:+390116673087" className="hover:text-white transition-colors">+39 011 6673087</a>
+          </span>
+          <span className="text-slate-800">|</span>
+          <span className="flex items-center gap-1.5">
+            <Smartphone size={11} className="text-amber-500 shrink-0" />
+            <a href="tel:+393792319582" className="hover:text-white transition-colors">+39 379 231 9582</a>
+          </span>
+        </div>
+      </div>
+      
       {/* Toast Notifiche */}
       <AnimatePresence>
         {notification && (
@@ -660,11 +691,11 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
             <span>Area Editore</span>
           </Link>
           <a
-            href="tel:+3906123456" 
+            href="tel:+390116673087" 
             className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-950 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-100 transition-colors"
           >
             <Phone size={13} className="text-slate-500" />
-            <span>+39 06 123456</span>
+            <span>+39 011 6673087</span>
           </a>
           <button 
             onClick={() => setShowSqlViewer(!showSqlViewer)}
@@ -1101,7 +1132,7 @@ model Lead {
 
           <div className="space-y-2 text-xs">
             <p className="font-bold text-white uppercase tracking-wider text-[11px]">Sede Centrale</p>
-            <p className="font-semibold text-slate-400">Via dei Condotti 12, Roma (RM)</p>
+            <p className="font-semibold text-slate-400">Via Finalmarina, 23, 10126 Torino TO</p>
             <p className="font-semibold text-slate-400">P.IVA 092834571295</p>
             <p className="font-semibold text-slate-400">Iscrizione REA 248102</p>
           </div>
@@ -1116,7 +1147,23 @@ model Lead {
         </div>
 
         <div className="max-w-7xl mx-auto pt-8 mt-8 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center text-[10px] uppercase font-bold tracking-widest text-slate-500 gap-4">
-          <p>© 2026 Studio BP Italia S.r.l. Tutti i diritti riservati.</p>
+          <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-2">
+            <span>© 2026 Studio BP Italia S.r.l. Tutti i diritti riservati.</span>
+            <span>|</span>
+            <Link href="/privacy" className="hover:text-amber-500 transition-colors cursor-pointer normal-case">
+              Privacy Policy &amp; GDPR
+            </Link>
+            <span>|</span>
+            <button 
+              onClick={() => {
+                localStorage.removeItem('sbp_gdpr_accepted');
+                window.location.reload();
+              }}
+              className="hover:text-amber-500 transition-colors cursor-pointer uppercase font-bold text-[10px]"
+            >
+              Consenso Cookie
+            </button>
+          </div>
           <div className="flex gap-4">
             <span>Ingegneria Prisma Client</span>
             <span>MySQL Connection Secured</span>
@@ -1200,7 +1247,7 @@ model Lead {
                           }`}
                         >
                           <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.517 2.266 2.27 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.63 2.028 14.16 1.001 11.53 1.002c-5.437 0-9.862 4.371-9.865 9.801a9.74 9.74 0 0.0 1.502 4.845L1.921 20.62l5.064-1.32c1.547.84 3.097 1.272 4.662 1.272l.001-.018zM17.47 14.39c-.326-.162-1.926-.948-2.221-1.055-.297-.108-.513-.162-.73.162-.216.324-.838 1.055-1.027 1.27-.189.217-.378.243-.704.082-.325-.162-1.372-.505-2.613-1.613-.966-.862-1.618-1.927-1.808-2.251-.19-.324-.02-.499.143-.66.147-.145.325-.378.487-.568.162-.189.216-.324.325-.54.109-.217.054-.405-.027-.568-.08-.162-.73-1.758-1.002-2.407-.265-.636-.53-.55-.73-.56-.19-.01-.405-.01-.62-.01-.215 0-.567.08-.864.405-.297.324-1.135 1.108-1.135 2.703 0 1.594 1.162 3.134 1.324 3.35.162.216 2.284 3.488 5.533 4.894.773.334 1.377.534 1.847.683.777.247 1.484.212 2.04.13.62-.092 1.925-.786 2.196-1.517.27-.73.27-1.353.19-1.485-.08-.135-.297-.216-.622-.38z"/>
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.517 2.266 2.27 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.63 2.028 14.16 1.001 11.53 1.002c-5.437 0-9.862 4.371-9.865 9.801a9.74 9.74 0 0 0 1.502 4.845L1.921 20.62l5.064-1.32c1.547.84 3.097 1.272 4.662 1.272l.001-.018zM17.47 14.39c-.326-.162-1.926-.948-2.221-1.055-.297-.108-.513-.162-.73.162-.216.324-.838 1.055-1.027 1.27-.189.217-.378.243-.704.082-.325-.162-1.372-.505-2.613-1.613-.966-.862-1.618-1.927-1.808-2.251-.19-.324-.02-.499.143-.66.147-.145.325-.378.487-.568.162-.189.216-.324.325-.54.109-.217.054-.405-.027-.568-.08-.162-.73-1.758-1.002-2.407-.265-.636-.53-.55-.73-.56-.19-.01-.405-.01-.62-.01-.215 0-.567.08-.864.405-.297.324-1.135 1.108-1.135 2.703 0 1.594 1.162 3.134 1.324 3.35.162.216 2.284 3.488 5.533 4.894.773.334 1.377.534 1.847.683.777.247 1.484.212 2.04.13.62-.092 1.925-.786 2.196-1.517.27-.73.27-1.353.19-1.485-.08-.135-.297-.216-.622-.38z"/>
                           </svg>
                           <span>WhatsApp</span>
                         </button>
@@ -1273,7 +1320,7 @@ model Lead {
                         {leadContactMethod === 'WHATSAPP' ? (
                           <>
                             <svg className="w-3.5 h-3.5 fill-current text-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.517 2.266 2.27 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.63 2.028 14.16 1.001 11.53 1.002c-5.437 0-9.862 4.371-9.865 9.801a9.74 9.74 0 0.0 1.502 4.845L1.921 20.62l5.064-1.32c1.547.84 3.097 1.272 4.662 1.272l.001-.018zM17.47 14.39c-.326-.162-1.926-.948-2.221-1.055-.297-.108-.513-.162-.73.162-.216.324-.838 1.055-1.027 1.27-.189.217-.378.243-.704.082-.325-.162-1.372-.505-2.613-1.613-.966-.862-1.618-1.927-1.808-2.251-.19-.324-.02-.499.143-.66.147-.145.325-.378.487-.568.162-.189.216-.324.325-.54.109-.217.054-.405-.027-.568-.08-.162-.73-1.758-1.002-2.407-.265-.636-.53-.55-.73-.56-.19-.01-.405-.01-.62-.01-.215 0-.567.08-.864.405-.297.324-1.135 1.108-1.135 2.703 0 1.594 1.162 3.134 1.324 3.35.162.216 2.284 3.488 5.533 4.894.773.334 1.377.534 1.847.683.777.247 1.484.212 2.04.13.62-.092 1.925-.786 2.196-1.517.27-.73.27-1.353.19-1.485-.08-.135-.297-.216-.622-.38z"/>
+                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.517 2.266 2.27 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.63 2.028 14.16 1.001 11.53 1.002c-5.437 0-9.862 4.371-9.865 9.801a9.74 9.74 0 0 0 1.502 4.845L1.921 20.62l5.064-1.32c1.547.84 3.097 1.272 4.662 1.272l.001-.018zM17.47 14.39c-.326-.162-1.926-.948-2.221-1.055-.297-.108-.513-.162-.73.162-.216.324-.838 1.055-1.027 1.27-.189.217-.378.243-.704.082-.325-.162-1.372-.505-2.613-1.613-.966-.862-1.618-1.927-1.808-2.251-.19-.324-.02-.499.143-.66.147-.145.325-.378.487-.568.162-.189.216-.324.325-.54.109-.217.054-.405-.027-.568-.08-.162-.73-1.758-1.002-2.407-.265-.636-.53-.55-.73-.56-.19-.01-.405-.01-.62-.01-.215 0-.567.08-.864.405-.297.324-1.135 1.108-1.135 2.703 0 1.594 1.162 3.134 1.324 3.35.162.216 2.284 3.488 5.533 4.894.773.334 1.377.534 1.847.683.777.247 1.484.212 2.04.13.62-.092 1.925-.786 2.196-1.517.27-.73.27-1.353.19-1.485-.08-.135-.297-.216-.622-.38z"/>
                             </svg>
                             <span>Contatta via WhatsApp</span>
                           </>
@@ -1299,6 +1346,9 @@ model Lead {
           </div>
         )}
       </AnimatePresence>
+
+      {/* GDPR Consent Cookie Banner */}
+      <GdprBanner />
 
     </div>
   );

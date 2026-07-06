@@ -344,7 +344,7 @@ export async function POST(req: NextRequest) {
       // Estrazione informazioni dalla descrizione
       const textInfo = parseInfoFromText(descrizione);
 
-      // Immagini: download e salvataggio in public/media
+      // Immagini: Usiamo direttamente gli URL remoti del CDN di Getrix per evitare timeout ed errori 404 in ambiente distribuito
       const immaginiLocali: string[] = [];
       if (item.Immagini && item.Immagini.Immagine) {
         const imgArray = Array.isArray(item.Immagini.Immagine) ? item.Immagini.Immagine : [item.Immagini.Immagine];
@@ -355,20 +355,7 @@ export async function POST(req: NextRequest) {
           const img = imgLimit[i];
           const imgUrl = img.URL;
           if (imgUrl) {
-            // Nome file locale: es. att_cin_410_1.jpg
-            const safeRef = cleanRiferimento.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-            const localFileName = `${safeRef}_${i + 1}.jpg`;
-            const localFilePath = path.join(mediaDir, localFileName);
-            
-            // Proviamo a scaricare l'immagine.
-            // Se scaricata con successo, usiamo l'URL locale `/media/nomefile.jpg`
-            // Altrimenti manteniamo l'URL originale remoto come fallback robusto
-            const success = await downloadImage(imgUrl, localFilePath);
-            if (success) {
-              immaginiLocali.push(`/media/${localFileName}`);
-            } else {
-              immaginiLocali.push(imgUrl);
-            }
+            immaginiLocali.push(imgUrl);
           }
         }
       }

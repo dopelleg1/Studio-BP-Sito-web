@@ -1,8 +1,9 @@
 import React from 'react';
-import { ChevronLeft, Database, Phone } from 'lucide-react';
+import { ChevronLeft, Database, Phone, MapPin, Globe, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import ListingDetailClient from '@/components/ListingDetailClient';
 import { LogoRound, LogoRectangular } from '@/components/Logo';
+import GdprBanner from '@/components/GdprBanner';
 import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -229,6 +230,34 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 selection:bg-amber-400 selection:text-slate-950">
       
+      {/* Top Info Bar */}
+      <div className="bg-slate-950 text-slate-400 text-[10px] sm:text-xs font-semibold py-2.5 px-4 md:px-8 border-b border-slate-900 flex flex-col md:flex-row justify-between items-center gap-2 select-none">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          <span className="flex items-center gap-1.5">
+            <MapPin size={11} className="text-amber-500 shrink-0" />
+            <span>Via Finalmarina, 23, 10126 Torino TO</span>
+          </span>
+          <span className="hidden md:inline text-slate-800">|</span>
+          <span className="flex items-center gap-1.5">
+            <Globe size={11} className="text-amber-500 shrink-0" />
+            <a href="https://www.studiobpitalia.it" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              www.studiobpitalia.it
+            </a>
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5">
+            <Phone size={11} className="text-amber-500 shrink-0" />
+            <a href="tel:+390116673087" className="hover:text-white transition-colors">+39 011 6673087</a>
+          </span>
+          <span className="text-slate-800">|</span>
+          <span className="flex items-center gap-1.5">
+            <Smartphone size={11} className="text-amber-500 shrink-0" />
+            <a href="tel:+393792319582" className="hover:text-white transition-colors">+39 379 231 9582</a>
+          </span>
+        </div>
+      </div>
+
       {/* Navigazione Superiore Condivisa */}
       <nav className="bg-white border-b border-slate-100 sticky top-0 z-40 shadow-xs px-4 md:px-8 py-3.5 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
@@ -253,11 +282,11 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
 
         <div className="flex items-center gap-3">
           <a
-            href="tel:+3906123456" 
+            href="tel:+390116673087" 
             className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-950 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-100 transition-colors"
           >
             <Phone size={13} className="text-slate-500" />
-            <span>+39 06 123456</span>
+            <span>+39 011 6673087</span>
           </a>
         </div>
       </nav>
@@ -327,7 +356,7 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
 
           <div className="space-y-2 text-xs">
             <p className="font-bold text-white uppercase tracking-wider text-[11px]">Sede Centrale</p>
-            <p className="font-semibold text-slate-400">Via dei Condotti 12, Roma (RM)</p>
+            <p className="font-semibold text-slate-400">Via Finalmarina, 23, 10126 Torino TO</p>
             <p className="font-semibold text-slate-400">P.IVA 092834571295</p>
             <p className="font-semibold text-slate-400">Iscrizione REA 248102</p>
           </div>
@@ -342,13 +371,33 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
         </div>
 
         <div className="max-w-7xl mx-auto pt-8 mt-8 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center text-[10px] uppercase font-bold tracking-widest text-slate-500 gap-4">
-          <p>© 2026 Studio BP Italia S.r.l. Tutti i diritti riservati.</p>
+          <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-2">
+            <span>© 2026 Studio BP Italia S.r.l. Tutti i diritti riservati.</span>
+            <span>|</span>
+            <Link href="/privacy" className="hover:text-amber-500 transition-colors cursor-pointer normal-case">
+              Privacy Policy &amp; GDPR
+            </Link>
+            <span>|</span>
+            <button 
+              onClick={() => {
+                localStorage.removeItem('sbp_gdpr_accepted');
+                window.location.reload();
+              }}
+              className="hover:text-amber-500 transition-colors cursor-pointer uppercase font-bold text-[10px]"
+            >
+              Consenso Cookie
+            </button>
+          </div>
           <div className="flex gap-4">
             <span>Ingegneria Prisma Client</span>
             <span>MySQL Connection Secured</span>
           </div>
         </div>
       </footer>
+
+      {/* GDPR Consent Cookie Banner */}
+      <GdprBanner />
+
     </div>
   );
 }
