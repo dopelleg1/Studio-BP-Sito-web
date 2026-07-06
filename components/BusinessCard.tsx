@@ -77,6 +77,9 @@ export default function BusinessCard({ listing, details, onSelect }: BusinessCar
             alt={titleSanitized} 
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.src = `https://picsum.photos/seed/${listing.id}/800/500`;
+            }}
           />
           <div className="absolute top-4 left-4 flex gap-1.5">
             <span className="px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-full text-primary bg-accent shadow-sm">

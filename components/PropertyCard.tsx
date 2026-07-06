@@ -67,6 +67,9 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
             alt={titleSanitized} 
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.src = `https://picsum.photos/seed/${listing.id}/800/500`;
+            }}
           />
           <div className="absolute top-4 left-4 flex gap-1.5">
             <span className="px-3 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-full text-white bg-primary shadow-sm border border-slate-700/30">
