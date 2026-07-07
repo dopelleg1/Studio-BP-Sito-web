@@ -31,7 +31,10 @@ import {
   Clock,
   LayoutDashboard,
   UploadCloud,
-  Star
+  Star,
+  Instagram,
+  Share2,
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoRound, LogoRectangular } from '@/components/Logo';
@@ -281,10 +284,18 @@ export default function Backoffice() {
     return INITIAL_LEADS;
   });
 
-  // Vista Corrente: 'list' | 'create_edit' | 'leads'
-  const [activeTab, setActiveTab] = useState<'listings' | 'leads'>('listings');
+  // Vista Corrente: 'listings' | 'leads' | 'social'
+  const [activeTab, setActiveTab] = useState<'listings' | 'leads' | 'social'>('listings');
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
+
+  // Stati per la gestione dei Post Social
+  const [socialPosts, setSocialPosts] = useState<any[]>([]);
+  const [socialLoading, setSocialLoading] = useState<boolean>(true);
+  const [newSocialPlatform, setNewSocialPlatform] = useState<'INSTAGRAM' | 'TIKTOK'>('INSTAGRAM');
+  const [newSocialUrl, setNewSocialUrl] = useState<string>('');
+  const [newSocialEmbed, setNewSocialEmbed] = useState<string>('');
+  const [newSocialCaption, setNewSocialCaption] = useState<string>('');
 
   // Filtri nella tabella
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -472,6 +483,74 @@ export default function Backoffice() {
     setIsAuthenticated(false);
     localStorage.removeItem('sbp_editor_session');
     showToast('Sessione terminata correttamente.');
+  };
+
+  // Caricamento dei post social
+  const fetchSocialPosts = async () => {
+    try {
+      setSocialLoading(true);
+      const res = await fetch('/api/social-posts');
+      if (res.ok) {
+        const data = await res.json();
+        setSocialPosts(data);
+      }
+    } catch (e) {
+      console.error("Errore caricamento posts in backoffice:", e);
+    } finally {
+      setSocialLoading(false);
+    }
+  };
+
+  // Creazione nuovo post social
+  const handleAddSocialPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSocialUrl) {
+      alert("L'URL del post o del video originale è obbligatorio.");
+      return;
+    }
+    try {
+      const res = await fetch('/api/social-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          piattaforma: newSocialPlatform,
+          url_post: newSocialUrl,
+          codice_embed: newSocialEmbed,
+          didascalia: newSocialCaption
+        })
+      });
+      if (res.ok) {
+        const newPost = await res.json();
+        setSocialPosts([newPost, ...socialPosts]);
+        setNewSocialUrl('');
+        setNewSocialEmbed('');
+        setNewSocialCaption('');
+        showToast("Nuovo post social integrato con successo!");
+      } else {
+        alert("Impossibile salvare il post social. Riprova.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Errore di rete durante il salvataggio.");
+    }
+  };
+
+  // Cancellazione post social
+  const handleDeleteSocialPost = async (id: number) => {
+    if (!confirm("Sei sicuro di voler eliminare definitivamente questo post social dal feed?")) return;
+    try {
+      const res = await fetch(`/api/social-posts?id=${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setSocialPosts(socialPosts.filter(p => p.id !== id));
+        showToast("Post social eliminato correttamente.");
+      } else {
+        alert("Impossibile eliminare il post social.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Cambia stato lead reale nel CRM su MySQL Prisma
@@ -952,6 +1031,13 @@ export default function Backoffice() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
+  // Carica i post social al cambio tab
+  useEffect(() => {
+    if (activeTab === 'social' && isAuthenticated) {
+      fetchSocialPosts();
+    }
+  }, [activeTab, isAuthenticated]);
+
   // Filtra listings in tempo reale per la schermata
   const filteredListings = listings.filter(l => {
     const matchesSearch = l.titolo.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -1175,24 +1261,33 @@ export default function Backoffice() {
             </div>
 
             {/* SEZIONE FILTRI E CONTROLLO TAB MULTI-SCHERMO */}
-            <div className="flex border-b border-slate-800 p-1 bg-slate-950 rounded-2xl max-w-md">
+            <div className="flex border-b border-slate-800 p-1 bg-slate-950 rounded-2xl max-w-xl">
               <button
                 onClick={() => { setActiveTab('listings'); setIsFormOpen(false); }}
-                className={`flex-1 py-3 text-center text-xs uppercase font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-3 px-2 text-center text-[10px] md:text-xs uppercase font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   activeTab === 'listings' ? 'bg-slate-900 text-amber-400 border border-slate-800' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 <Database size={13} />
-                Gestione Annunci
+                <span>Gestione Annunci</span>
               </button>
               <button
                 onClick={() => { setActiveTab('leads'); setIsFormOpen(false); }}
-                className={`flex-1 py-3 text-center text-xs uppercase font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-3 px-2 text-center text-[10px] md:text-xs uppercase font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   activeTab === 'leads' ? 'bg-slate-900 text-amber-400 border border-slate-800' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 <Users size={13} />
-                Leads CRM ({leads.filter(l => l.status === 'NEW').length} nuovi)
+                <span>Leads CRM ({leads.filter(l => l.status === 'NEW').length})</span>
+              </button>
+              <button
+                onClick={() => { setActiveTab('social'); setIsFormOpen(false); }}
+                className={`flex-1 py-3 px-2 text-center text-[10px] md:text-xs uppercase font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  activeTab === 'social' ? 'bg-slate-900 text-amber-400 border border-slate-800' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Instagram size={13} />
+                <span>Studio BP Social</span>
               </button>
             </div>
 
@@ -2118,10 +2213,165 @@ export default function Backoffice() {
                     })
                   ) : (
                     <div className="bg-slate-900/30 border border-slate-850 p-6 text-center text-slate-500 text-xs font-semibold rounded-2xl">
-                       Nessun messaggio lead pervenuto al CRM.
+                      Nessun messaggio lead pervenuto al CRM.
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/*******************************************************
+             * SCHERMO 5: STUDIO BP SOCIAL GESTIONE FEED
+             *******************************************************/}
+            {activeTab === 'social' && !isFormOpen && (
+              <div className="space-y-6">
+                
+                {/* Modulo di inserimento nuovo post */}
+                <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 md:p-6 text-left space-y-4">
+                  <div>
+                    <h3 className="text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
+                      <Share2 size={16} className="text-amber-400" />
+                      <span>Integra Nuovo Post / Video Social</span>
+                    </h3>
+                    <p className="text-slate-500 text-xs mt-0.5">Inserisci un reel o post di Instagram o un video di TikTok per mostrarlo sul sito.</p>
+                  </div>
+
+                  <form onSubmit={handleAddSocialPost} className="space-y-4 pt-2">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Piattaforma</label>
+                        <select
+                          value={newSocialPlatform}
+                          onChange={(e) => setNewSocialPlatform(e.target.value as 'INSTAGRAM' | 'TIKTOK')}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:border-amber-500 focus:outline-none"
+                        >
+                          <option value="INSTAGRAM">Instagram / Reels</option>
+                          <option value="TIKTOK">TikTok Video</option>
+                        </select>
+                      </div>
+
+                      <div className="md:col-span-2 space-y-1">
+                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">URL Originale del Post</label>
+                        <input
+                          type="url"
+                          placeholder="https://www.instagram.com/p/... o https://www.tiktok.com/@..."
+                          value={newSocialUrl}
+                          onChange={(e) => setNewSocialUrl(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-amber-500 focus:outline-none"
+                          required
+                        />
+                      </div>
+
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Codice Embed Iframe (Opzionale)</label>
+                      <textarea
+                        placeholder="Incolla qui il codice <iframe> fornito dalla piattaforma se vuoi incorporare il widget interattivo."
+                        value={newSocialEmbed}
+                        onChange={(e) => setNewSocialEmbed(e.target.value)}
+                        rows={2}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-amber-500 focus:outline-none font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Didascalia / Descrizione del Post</label>
+                      <textarea
+                        placeholder="Scrivi una breve didascalia descrittiva che spieghi il post o fornisca informazioni utili."
+                        value={newSocialCaption}
+                        onChange={(e) => setNewSocialCaption(e.target.value)}
+                        rows={3}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <button
+                        type="submit"
+                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider px-6 py-3 rounded-xl transition-all hover:scale-102 flex items-center gap-2 cursor-pointer shadow-md shadow-amber-500/10"
+                      >
+                        <Plus size={14} />
+                        <span>Integra Post Social</span>
+                      </button>
+                    </div>
+
+                  </form>
+                </div>
+
+                {/* Elenco dei post social attivi */}
+                <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 md:p-6 text-left space-y-4">
+                  <div>
+                    <h3 className="text-sm font-black uppercase text-white tracking-wider">Feed Social Attivo ({socialPosts.length} post)</h3>
+                    <p className="text-slate-500 text-xs mt-0.5">Elenco di tutti i post social integrati che appaiono nella pagina Studio BP Social.</p>
+                  </div>
+
+                  {socialLoading ? (
+                    <p className="text-xs text-slate-500 font-semibold text-center py-6">Caricamento post social...</p>
+                  ) : socialPosts.length > 0 ? (
+                    <div className="overflow-x-auto rounded-2xl border border-slate-850">
+                      <table className="w-full text-slate-300 text-xs">
+                        <thead>
+                          <tr className="bg-slate-900 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-850 text-[10px]">
+                            <th className="px-4 py-3.5 text-left">Piattaforma</th>
+                            <th className="px-4 py-3.5 text-left">Didascalia</th>
+                            <th className="px-4 py-3.5 text-left">Link</th>
+                            <th className="px-4 py-3.5 text-left">Data Creazione</th>
+                            <th className="px-4 py-3.5 text-center">Azioni</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-850">
+                          {socialPosts.map((post) => {
+                            const isInsta = post.piattaforma === 'INSTAGRAM';
+                            return (
+                              <tr key={post.id} className="hover:bg-slate-900/40 transition-colors">
+                                <td className="px-4 py-3.5 whitespace-nowrap">
+                                  <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider ${
+                                    isInsta ? 'bg-pink-900/30 text-pink-400' : 'bg-slate-800 text-white'
+                                  }`}>
+                                    {post.piattaforma}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3.5 max-w-xs truncate font-semibold">
+                                  {post.didascalia || "Nessuna didascalia."}
+                                </td>
+                                <td className="px-4 py-3.5 truncate max-w-[150px] font-mono text-[10px] text-slate-500">
+                                  <a 
+                                    href={post.url_post} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="text-amber-500 hover:underline flex items-center gap-1"
+                                  >
+                                    <span>Vedi Post</span>
+                                    <ExternalLink size={10} />
+                                  </a>
+                                </td>
+                                <td className="px-4 py-3.5 whitespace-nowrap font-semibold">
+                                  {new Date(post.data_creazione).toLocaleDateString('it-IT')}
+                                </td>
+                                <td className="px-4 py-3.5 whitespace-nowrap text-center">
+                                  <button
+                                    onClick={() => handleDeleteSocialPost(post.id)}
+                                    className="p-2 text-red-500 hover:bg-red-950/30 hover:text-red-400 rounded-xl transition-colors cursor-pointer"
+                                    title="Elimina post"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-900/30 border border-slate-850 p-6 text-center text-slate-500 text-xs font-semibold rounded-2xl">
+                      Nessun post social integrato al momento.
+                    </div>
+                  )}
+                </div>
+
               </div>
             )}
 

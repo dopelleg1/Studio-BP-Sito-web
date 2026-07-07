@@ -272,6 +272,7 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
           <Link href="/#hero-section" className="hover:text-slate-900 transition-colors">Scegli Percorso</Link>
           <Link href="/?filter=immobili" className="hover:text-slate-900 transition-colors">Immobili</Link>
           <Link href="/?filter=attivita" className="hover:text-slate-900 transition-colors">Attività in vendita</Link>
+          <Link href="/social" className="hover:text-slate-900 transition-colors">Studio BP Social</Link>
           <Link 
             href="/"
             className="px-3 py-1.5 bg-slate-900 hover:bg-black text-white hover:text-amber-400 transition-colors rounded-lg flex items-center gap-2 text-[10px] font-mono font-bold"

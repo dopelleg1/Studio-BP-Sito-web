@@ -28,7 +28,9 @@ import {
   Smartphone,
   FileText,
   Coins,
-  Scale
+  Scale,
+  Home,
+  Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import SearchWidget from '@/components/SearchWidget';
@@ -676,6 +678,12 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
           >
             Attività in vendita
           </button>
+          <Link 
+            href="/social"
+            className="hover:text-slate-900 transition-colors uppercase font-semibold text-xs text-slate-550 hover:underline hover:decoration-amber-500 hover:underline-offset-4 cursor-pointer"
+          >
+            Studio BP Social
+          </Link>
           <button 
             onClick={() => setShowSqlViewer(!showSqlViewer)}
             className="px-3 py-1.5 bg-slate-900 hover:bg-slate-900 text-white hover:text-amber-400 transition-colors rounded-lg flex items-center gap-2 text-[10px] font-mono font-bold cursor-pointer"
@@ -1134,6 +1142,89 @@ model Lead {
                   </div>
                   <div className="pt-2 text-[10px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-1 group-hover:gap-2 transition-all">
                     <span>Richiedi Sopralluogo</span>
+                    <ChevronRight size={10} />
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
+
+      {/* 3.2 B2C REAL ESTATE SERVICES HUB (Only visible when activeCategory === 'IMMOBILE') */}
+      <AnimatePresence>
+        {activeCategory === 'IMMOBILE' && (
+          <motion.section 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.4, ease: 'easeInOut' }}
+            className="overflow-hidden bg-slate-50 border-t border-b border-slate-200/60"
+          >
+            <div className="max-w-7xl mx-auto px-4 py-16 md:py-20">
+              
+              <div className="text-center space-y-3 mb-12 md:mb-16">
+                <p className="text-[10px] md:text-xs font-black tracking-widest uppercase text-emerald-700">Servizi Immobiliari B2C</p>
+                <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">
+                  La Tua Guida nella Compravendita Residenziale
+                </h2>
+                <div className="w-16 h-1 bg-emerald-500 mx-auto rounded-full mt-3" />
+                <p className="text-slate-505 text-xs md:text-sm font-semibold max-w-2xl mx-auto leading-relaxed mt-2">
+                  Studio BP Italia ti accompagna nell&apos;acquisto, nella vendita o nella valorizzazione del tuo patrimonio immobiliare. Mettiamo al tuo servizio professionalità ed esperienza con un supporto a 360° che include l&apos;accesso alle aste e la mediazione creditizia.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                {/* 1. Consulenza Immobiliare e Aste */}
+                <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-2xl space-y-4 hover:border-emerald-600/30 hover:shadow-lg transition-all duration-300 group text-left flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="w-11 h-11 bg-emerald-500/10 text-emerald-700 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-xs border border-emerald-500/20">
+                      <Home size={20} />
+                    </div>
+                    <h3 className="text-base font-black text-slate-900 group-hover:text-emerald-700 transition-colors duration-200">Consulenza &amp; Acquisto all&apos;Asta</h3>
+                    <p className="text-[11px] md:text-xs text-slate-500 leading-relaxed font-semibold">
+                      Sia sul mercato libero che nel mondo delle aste giudiziarie. Ti supportiamo nell&apos;acquisto della casa dei tuoi sogni o nella ricerca di immobili a reddito per investimento. Ti guidiamo in totale sicurezza e trasparenza in ogni fase dell&apos;asta, affiancandoti ad architetti, geometri, notai e legali esperti del settore.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[10px] font-black uppercase text-emerald-700 tracking-wider flex items-center gap-1 group-hover:gap-2 transition-all">
+                    <span>Scopri Servizio</span>
+                    <ChevronRight size={10} />
+                  </div>
+                </div>
+
+                {/* 2. Servizi Finanziari e Mutui */}
+                <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-2xl space-y-4 hover:border-emerald-600/30 hover:shadow-lg transition-all duration-300 group text-left flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="w-11 h-11 bg-emerald-500/10 text-emerald-700 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-xs border border-emerald-500/20">
+                      <Coins size={20} />
+                    </div>
+                    <h3 className="text-base font-black text-slate-900 group-hover:text-emerald-700 transition-colors duration-200">Mediazione Creditizia &amp; Supporto Mutui</h3>
+                    <p className="text-[11px] md:text-xs text-slate-500 leading-relaxed font-semibold">
+                      Troviamo la chiave finanziaria per il tuo acquisto. Grazie a solide partnership con molteplici istituti di credito nazionali, i nostri consulenti confrontano e selezionano le migliori proposte di mutuo sul mercato per garantirti il tasso di interesse più conveniente e delibere in tempi rapidi.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[10px] font-black uppercase text-emerald-700 tracking-wider flex items-center gap-1 group-hover:gap-2 transition-all">
+                    <span>Calcola Mutuo</span>
+                    <ChevronRight size={10} />
+                  </div>
+                </div>
+
+                {/* 3. Interior Design e Ristrutturazione */}
+                <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-2xl space-y-4 hover:border-emerald-600/30 hover:shadow-lg transition-all duration-300 group text-left flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="w-11 h-11 bg-emerald-500/10 text-emerald-700 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-xs border border-emerald-500/20">
+                      <Layers size={20} />
+                    </div>
+                    <h3 className="text-base font-black text-slate-900 group-hover:text-emerald-700 transition-colors duration-200">Interior Design &amp; Ristrutturazione</h3>
+                    <p className="text-[11px] md:text-xs text-slate-500 leading-relaxed font-semibold">
+                      Valorizziamo il tuo immobile per viverlo al meglio o massimizzarne il valore prima della vendita. Forniamo preventivi di spesa chiari e gratuiti, coordinando artigiani qualificati ed interior designer professionisti per ristrutturare i tuoi ambienti con standard qualitativi d&apos;eccellenza.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[10px] font-black uppercase text-emerald-700 tracking-wider flex items-center gap-1 group-hover:gap-2 transition-all">
+                    <span>Richiedi Progetto</span>
                     <ChevronRight size={10} />
                   </div>
                 </div>
