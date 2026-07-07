@@ -25,7 +25,10 @@ import {
   Check,
   Send,
   Globe,
-  Smartphone
+  Smartphone,
+  FileText,
+  Coins,
+  Scale
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import SearchWidget from '@/components/SearchWidget';
@@ -1007,6 +1010,140 @@ model Lead {
 
         </div>
       </section>
+
+      {/* 3.1 B2B CORPORATE ADVISORY SERVICES HUB (Only visible when activeCategory === 'BUSINESS') */}
+      <AnimatePresence>
+        {activeCategory === 'BUSINESS' && (
+          <motion.section 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.4, ease: 'easeInOut' }}
+            className="overflow-hidden bg-slate-900 border-t border-b border-slate-850 text-white"
+          >
+            <div className="max-w-7xl mx-auto px-4 py-16 md:py-20">
+              
+              <div className="text-center space-y-3 mb-12 md:mb-16">
+                <p className="text-[10px] md:text-xs font-black tracking-widest uppercase text-amber-400">Servizi Fiduciari B2B</p>
+                <h2 className="text-2xl md:text-4xl font-black tracking-tight text-white">
+                  Soluzioni Professionali Cessioni Aziendali
+                </h2>
+                <div className="w-16 h-1 bg-amber-500 mx-auto rounded-full mt-3" />
+                <p className="text-slate-400 text-xs md:text-sm font-semibold max-w-2xl mx-auto leading-relaxed mt-2">
+                  Studio BP Italia non si limita alla semplice intermediazione. Affianchiamo imprenditori e investitori con un ecosistema consulenziale integrato per garantire il successo, la riservatezza e la massima resa di ogni transazione societaria.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                {/* 1. Consulenza Aziendale E Commerciale */}
+                <div className="p-6 md:p-8 bg-slate-950/45 border border-slate-800 rounded-2xl space-y-4 hover:border-amber-500/40 hover:bg-slate-950/80 transition-all duration-300 group text-left flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="w-11 h-11 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-sm border border-amber-500/20">
+                      <Briefcase size={20} />
+                    </div>
+                    <h3 className="text-base font-black text-white group-hover:text-amber-400 transition-colors duration-200">Consulenza Aziendale &amp; Commerciale</h3>
+                    <p className="text-[11px] md:text-xs text-slate-400 leading-relaxed font-semibold">
+                      Dalla cessione strategica all&apos;avviamento di nuove attività commerciali. Mettiamo a tua completa disposizione un network d&apos;elite composto da commercialisti, consulenti del lavoro, notai ed avvocati qualificati per strutturare l&apos;operazione in totale sicurezza.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[10px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-1 group-hover:gap-2 transition-all">
+                    <span>Avvia Pratica</span>
+                    <ChevronRight size={10} />
+                  </div>
+                </div>
+
+                {/* 2. Valutazione Aziende - Studio BP */}
+                <div className="p-6 md:p-8 bg-slate-950/45 border border-slate-800 rounded-2xl space-y-4 hover:border-amber-500/40 hover:bg-slate-950/80 transition-all duration-300 group text-left flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="w-11 h-11 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-sm border border-amber-500/20">
+                      <TrendingUp size={20} />
+                    </div>
+                    <h3 className="text-base font-black text-white group-hover:text-amber-400 transition-colors duration-200">Valutazione d&apos;Impresa Correlata</h3>
+                    <p className="text-[11px] md:text-xs text-slate-400 leading-relaxed font-semibold">
+                      Analizziamo flussi di cassa, asset patrimoniali e metriche econometriche del settore in cui operi. Il nostro processo analitico certifica il reale valore di mercato aziendale, valorizzando il goodwill e le potenzialità future per spuntare il prezzo ottimale.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[10px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-1 group-hover:gap-2 transition-all">
+                    <span>Richiedi Stima</span>
+                    <ChevronRight size={10} />
+                  </div>
+                </div>
+
+                {/* 3. Servizi Finanziari */}
+                <div className="p-6 md:p-8 bg-slate-950/45 border border-slate-800 rounded-2xl space-y-4 hover:border-amber-500/40 hover:bg-slate-950/80 transition-all duration-300 group text-left flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="w-11 h-11 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-sm border border-amber-500/20">
+                      <Coins size={20} />
+                    </div>
+                    <h3 className="text-base font-black text-white group-hover:text-amber-400 transition-colors duration-200">Financial Advisory &amp; Credito</h3>
+                    <p className="text-[11px] md:text-xs text-slate-400 leading-relaxed font-semibold">
+                      Rendiamo l&apos;acquisizione sostenibile attraverso la leva finanziaria. Studio BP negozia direttamente con i principali istituti di credito partner per proporre finanziamenti, leasing e linee di credito vantaggiose su misura del tuo business plan.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[10px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-1 group-hover:gap-2 transition-all">
+                    <span>Calcola Leva</span>
+                    <ChevronRight size={10} />
+                  </div>
+                </div>
+
+                {/* 4. Assistenza Legale - Studio BP */}
+                <div className="p-6 md:p-8 bg-slate-950/45 border border-slate-800 rounded-2xl space-y-4 hover:border-amber-500/40 hover:bg-slate-950/80 transition-all duration-300 group text-left flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="w-11 h-11 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-sm border border-amber-500/20">
+                      <Scale size={20} />
+                    </div>
+                    <h3 className="text-base font-black text-white group-hover:text-amber-400 transition-colors duration-200">Tutela Legale &amp; Debiti Aziendali</h3>
+                    <p className="text-[11px] md:text-xs text-slate-400 leading-relaxed font-semibold">
+                      Una spalla legale solida per gestire o ristrutturare posizioni debitorie complesse con banche, finanziarie, fisco (ex Equitalia) o fornitori. Strutturiamo soluzioni transattive protette per salvaguardare il patrimonio e dare continuità all&apos;attività.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[10px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-1 group-hover:gap-2 transition-all">
+                    <span>Richiedi Supporto</span>
+                    <ChevronRight size={10} />
+                  </div>
+                </div>
+
+                {/* 5. Disbrigo Pratiche Amministrative */}
+                <div className="p-6 md:p-8 bg-slate-950/45 border border-slate-800 rounded-2xl space-y-4 hover:border-amber-500/40 hover:bg-slate-950/80 transition-all duration-300 group text-left flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="w-11 h-11 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-sm border border-amber-500/20">
+                      <FileText size={20} />
+                    </div>
+                    <h3 className="text-base font-black text-white group-hover:text-amber-400 transition-colors duration-200">Burocrazia Zero &amp; Licenze ADM</h3>
+                    <p className="text-[11px] md:text-xs text-slate-400 leading-relaxed font-semibold">
+                      Fattibilità, stesura e registrazione contratti. Gestiamo l&apos;intera trafila burocratica e il trasferimento delle licenze con Agenzia delle Dogane e dei Monopoli (tabacchi, giochi), Comuni (SCIA), Camere di Commercio, INPS e Agenzia delle Entrate.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[10px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-1 group-hover:gap-2 transition-all">
+                    <span>Vedi Pratiche</span>
+                    <ChevronRight size={10} />
+                  </div>
+                </div>
+
+                {/* 6. Interior Design E Ristrutturazioni */}
+                <div className="p-6 md:p-8 bg-slate-950/45 border border-slate-800 rounded-2xl space-y-4 hover:border-amber-500/40 hover:bg-slate-950/80 transition-all duration-300 group text-left flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="w-11 h-11 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-sm border border-amber-500/20">
+                      <Building2 size={20} />
+                    </div>
+                    <h3 className="text-base font-black text-white group-hover:text-amber-400 transition-colors duration-200">Restyling &amp; Ammodernamento Locali</h3>
+                    <p className="text-[11px] md:text-xs text-slate-400 leading-relaxed font-semibold">
+                      Aumentiamo il valore percepito della tua attività per accelerare la vendita o rilanciarne il fatturato. Forniamo preventivi gratuiti e coordiniamo artigiani storici e interior designer per rinnovare i locali commerciali in tempi rapidi.
+                    </p>
+                  </div>
+                  <div className="pt-2 text-[10px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-1 group-hover:gap-2 transition-all">
+                    <span>Richiedi Sopralluogo</span>
+                    <ChevronRight size={10} />
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
 
       {/* RISULTATI FILTRATI IN DIGITALE MEDIANTE LA RICERCA DINAMICA */}
       <section id="search-results-section" className="scroll-mt-24 px-4 py-8 max-w-7xl mx-auto w-full">
