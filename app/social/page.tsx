@@ -250,8 +250,8 @@ export default function SocialPage() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
                 <div key={i} className="bg-white border border-slate-200 rounded-3xl h-[280px] animate-pulse flex flex-col justify-between p-6">
                   <div className="space-y-4">
                     <div className="w-10 h-10 bg-slate-200 rounded-xl" />
@@ -269,7 +269,7 @@ export default function SocialPage() {
               <p className="text-xs text-slate-400 leading-relaxed font-semibold">I post possono essere configurati e integrati dinamicamente tramite il pannello di Backoffice di Studio BP.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {posts.map((post) => {
                 const isInsta = post.piattaforma === 'INSTAGRAM';
                 
