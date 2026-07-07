@@ -4,6 +4,7 @@ import Link from 'next/link';
 import ListingDetailClient from '@/components/ListingDetailClient';
 import { LogoRound, LogoRectangular } from '@/components/Logo';
 import GdprBanner from '@/components/GdprBanner';
+import ResetCookieButton from '@/components/ResetCookieButton';
 import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -378,15 +379,7 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
               Privacy Policy &amp; GDPR
             </Link>
             <span>|</span>
-            <button 
-              onClick={() => {
-                localStorage.removeItem('sbp_gdpr_accepted');
-                window.location.reload();
-              }}
-              className="hover:text-amber-500 transition-colors cursor-pointer uppercase font-bold text-[10px]"
-            >
-              Consenso Cookie
-            </button>
+            <ResetCookieButton />
           </div>
           <div className="flex gap-4">
             <span>Ingegneria Prisma Client</span>
