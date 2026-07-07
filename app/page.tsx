@@ -684,13 +684,6 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
           >
             Studio BP Social
           </Link>
-          <button 
-            onClick={() => setShowSqlViewer(!showSqlViewer)}
-            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-900 text-white hover:text-amber-400 transition-colors rounded-lg flex items-center gap-2 text-[10px] font-mono font-bold cursor-pointer"
-          >
-            <Database size={12} />
-            {showSqlViewer ? 'Nascondi DB' : 'Verifica Schema Prisma'}
-          </button>
         </div>
 
         <div className="flex items-center gap-3">
@@ -701,124 +694,10 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
             <ShieldCheck size={13} className="text-amber-400" />
             <span>Area Editore</span>
           </Link>
-          <a
-            href="tel:+390116673087" 
-            className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-950 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-100 transition-colors"
-          >
-            <Phone size={13} className="text-slate-500" />
-            <span>+39 011 6673087</span>
-          </a>
-          <button 
-            onClick={() => setShowSqlViewer(!showSqlViewer)}
-            className="lg:hidden p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700"
-            title="Mostra database"
-          >
-            <Database size={15} />
-          </button>
         </div>
       </nav>
 
-      {/* Sezione di Schema Prisma & Monitor DB (Finto DBMS sincronizzato) */}
-      <AnimatePresence>
-        {showSqlViewer && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-slate-950 text-slate-300 border-b border-amber-500/20 overflow-hidden"
-          >
-            <div className="max-w-7xl mx-auto p-5 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
-              <div className="lg:col-span-7 space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 font-mono">
-                      schema.prisma (Tabelle &amp; Relazioni Inizializzate)
-                    </h3>
-                  </div>
-                  <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">Relational Structure</span>
-                </div>
-                
-                <pre className="bg-slate-900 p-4 rounded-xl text-[11px] font-mono text-emerald-400 overflow-x-auto max-h-64 border border-slate-800 leading-relaxed shadow-inner">
-{`model Listing {
-  id              Int              @id @default(autoincrement())
-  titolo          String           @db.VarChar(255)
-  prezzo          Decimal          @db.Decimal(12, 2)
-  tipo_contratto  TipoContratto    // VENDITA / AFFITTO
-  categoria       CategoriaListing // IMMOBILE / BUSINESS
-  propertyDetails PropertyDetails? // Relazione 1:1 B2C
-  businessDetails BusinessDetails? // Relazione 1:1 B2B
-  leads           Lead[]           // Relazione 1:N Leads
-}
 
-model PropertyDetails {
-  id                 Int      @id @default(autoincrement())
-  listingId          Int      @unique
-  listing            Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  mq                 Int
-  stanze             Int
-  classe_energetica  String
-}
-
-model BusinessDetails {
-  id                  Int      @id @default(autoincrement())
-  listingId           Int      @unique
-  listing             Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  settore_merceologico String
-  fatturato_annuo     Decimal?
-}
-
-model Lead {
-  id                     Int        @id @default(autoincrement())
-  nome                   String
-  email                  String
-  id_listing_associato   Int?
-  listing                Listing?   @relation(fields: [id_listing_associato], references: [id])
-}`}
-                </pre>
-              </div>
-
-              <div className="lg:col-span-5 space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 font-mono flex items-center gap-1.5">
-                    <Users size={13} />
-                    Lead Log in MySQL (Relazione 1:N)
-                  </h3>
-                  <span className="text-[10px] text-slate-400 font-mono">Real-time simulator state</span>
-                </div>
-
-                <div className="space-y-3.5 max-h-64 overflow-y-auto pr-1">
-                  {leads.map((l, i) => {
-                    const matchedListing = listings.find(lst => lst.id === l.id_listing_associato);
-                    return (
-                      <div key={l.id} className="p-3 bg-slate-900 border border-slate-800 rounded-xl leading-relaxed">
-                        <div className="flex justify-between items-start">
-                          <p className="text-xs font-extrabold text-white">{l.nome}</p>
-                          <span className="text-[9px] font-mono bg-blue-900/30 text-sky-300 border border-sky-800/40 px-1.5 py-0.5 rounded uppercase font-bold">
-                            {l.status}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-1 italic">&quot;{l.messaggio}&quot;</p>
-                        <div className="mt-2.5 pt-1.5 border-t border-slate-800/60 flex justify-between items-center text-[9px] font-mono text-slate-500">
-                          <span>Listing Id: #{l.id_listing_associato || 'Generico'}</span>
-                          <span className="text-amber-500 truncate max-w-[170px]">Ref: {matchedListing?.titolo || 'Nessuno'}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {leads.length === 0 && (
-                    <div className="p-8 text-center text-slate-500 text-xs">
-                      Nessun record caricato nel DB simulato. Invia una richiesta tramite le card per vederne uno in tempo reale!
-                    </div>
-                  )}
-                </div>
-              </div>
-
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* 1. HERO SECTION SPLIT-SCREEN (CRO OPTIMIZED) */}
       <section id="hero-section" className="relative grid grid-cols-1 lg:grid-cols-2 min-h-[640px] border-b border-slate-200">

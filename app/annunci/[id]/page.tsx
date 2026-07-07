@@ -273,23 +273,9 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
           <Link href="/?filter=immobili" className="hover:text-slate-900 transition-colors">Immobili</Link>
           <Link href="/?filter=attivita" className="hover:text-slate-900 transition-colors">Attività in vendita</Link>
           <Link href="/social" className="hover:text-slate-900 transition-colors">Studio BP Social</Link>
-          <Link 
-            href="/"
-            className="px-3 py-1.5 bg-slate-900 hover:bg-black text-white hover:text-amber-400 transition-colors rounded-lg flex items-center gap-2 text-[10px] font-mono font-bold"
-          >
-            <Database size={12} />
-            Schema Prisma Sincronizzato
-          </Link>
         </div>
 
         <div className="flex items-center gap-3">
-          <a
-            href="tel:+390116673087" 
-            className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-950 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-100 transition-colors"
-          >
-            <Phone size={13} className="text-slate-500" />
-            <span>+39 011 6673087</span>
-          </a>
         </div>
       </nav>
 
