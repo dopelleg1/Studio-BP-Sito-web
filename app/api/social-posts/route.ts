@@ -78,17 +78,22 @@ export async function POST(req: Request) {
       
       if (match && match[1]) {
         const videoId = match[1];
-        // Costruiamo l'iframe del player nativo di TikTok (veloce, responsivo e indipendente da script esterni)
-        codice_embed = `<iframe src="https://www.tiktok.com/embed/${videoId}" style="width: 100%; height: 580px; border: none; border-radius: 16px; background: black;" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe>`;
+        
+        // Impostiamo il codice blockquote ufficiale come fallback di base
+        codice_embed = `<blockquote class="tiktok-embed" cite="${url_post}" data-video-id="${videoId}" style="width: 100%;"><section><a href="${url_post}" target="_blank">Video di Studio BP su TikTok</a></section></blockquote>`;
 
-        // Proviamo a recuperare la didascalia reale e il titolo del video tramite l'oEmbed pubblico di TikTok
+        // Proviamo a recuperare la didascalia reale e il codice HTML oEmbed ufficiale di TikTok
         try {
           const oEmbedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url_post)}`;
           const response = await fetch(oEmbedUrl);
           if (response.ok) {
             const data = await response.json();
             if (data.title && !didascalia) {
-              finalCaption = data.title; // Salva la vera didascalia del video!
+              finalCaption = data.title; // Salva la vera didascalia del video
+            }
+            if (data.html) {
+              // Rimuoviamo il tag script interno se presente, dato che lo caricheremo dinamicamente su React
+              codice_embed = data.html.replace(/<script async src="https:\/\/www\.tiktok\.com\/embed\.js"><\/script>/gi, '');
             }
           }
         } catch (e) {

@@ -50,6 +50,28 @@ export default function SocialPage() {
     fetchPosts();
   }, []);
 
+  // Effetto per caricare lo script di TikTok in modo dinamico e forzare il rendering dei widget blockquote
+  useEffect(() => {
+    if (posts.length > 0) {
+      // 1. Rimuove eventuali script vecchi di TikTok per forzare la scansione
+      const oldScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
+      if (oldScript) {
+        oldScript.remove();
+      }
+
+      // 2. Rimuove l'oggetto globale di cache per forzare il ricaricamento del widget
+      if (typeof window !== 'undefined') {
+        delete (window as any).__tt_embed__;
+      }
+
+      // 3. Crea e inserisce lo script ufficiale di TikTok
+      const script = document.createElement('script');
+      script.src = "https://www.tiktok.com/embed.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, [posts]);
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 selection:bg-amber-400 selection:text-slate-950">
       
