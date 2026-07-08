@@ -583,14 +583,15 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
 
     // --- NUOVI FILTRI INLINE AGGIUNTIVI (LIVE SUB-FILTERS) ---
     
-    // 1. Ricerca Libera per Testo (Cerca in titolo, descrizione, comune, zona, riferimento)
+    // 1. Ricerca Libera per Testo (Cerca in titolo, descrizione, comune, zona, riferimento, settore)
     if (subSearchQuery.trim() !== '') {
       const q = subSearchQuery.toLowerCase().trim();
       const matchText = l.titolo.toLowerCase().includes(q) || 
                         l.descrizione.toLowerCase().includes(q) || 
                         (l.zona && l.zona.toLowerCase().includes(q)) || 
                         (l.comune && l.comune.toLowerCase().includes(q)) ||
-                        (l.riferimento && l.riferimento.toLowerCase().includes(q));
+                        (l.riferimento && l.riferimento.toLowerCase().includes(q)) ||
+                        (l.businessDetails?.settore_merceologico && l.businessDetails.settore_merceologico.toLowerCase().includes(q));
       if (!matchText) return false;
     }
 
@@ -629,6 +630,13 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
     const bEv = b.in_evidenza ? 1 : 0;
     return bEv - aEv;
   });
+
+  // Calcola i settori merceologici unici presenti per il filtro dropdown delle attività
+  const uniqueSectors = Array.from(new Set(
+    listings
+      .filter(l => l.categoria === 'BUSINESS' && l.businessDetails?.settore_merceologico)
+      .map(l => l.businessDetails!.settore_merceologico)
+  )).filter(Boolean) as string[];
 
   // Lista degli annunci in evidenza per la categoria attiva (con fallback sui primi annunci della stessa categoria se < 3)
   const featuredFilteredListings = listings.filter(l => l.in_evidenza && l.categoria === activeCategory);
@@ -1275,11 +1283,9 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
                   >
                     <option value="Tutti">Tutti i settori</option>
-                    <option value="Bar/Ristorazione">Bar / Ristorazione</option>
-                    <option value="Tabaccheria">Tabaccheria / Lotto</option>
-                    <option value="Alimentare">Alimentare / Supermercati</option>
-                    <option value="Servizi">Servizi / Terziario</option>
-                    <option value="Industriale">Industriale / Logistica</option>
+                    {uniqueSectors.map(sector => (
+                      <option key={sector} value={sector}>{sector}</option>
+                    ))}
                   </select>
                 </div>
 
