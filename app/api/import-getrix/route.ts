@@ -4,6 +4,7 @@ import { XMLParser } from 'fast-xml-parser';
 import fs from 'fs';
 import path from 'path';
 import { db } from '@/lib/db';
+import { saveTaxonomiesIfNew } from '@/lib/taxonomies';
 
 // Definizione Tipi coerenti con il resto dell'applicazione
 type TipoContratto = 'VENDITA' | 'AFFITTO';
@@ -189,7 +190,7 @@ function extractReference(item: any, descrizione: string): string | null {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { force = false, url, xmlContent } = body;
+    const { force = false, url, xmlContent, onlyTaxonomies = false } = body;
 
     let xmlText = '';
 
@@ -450,7 +451,22 @@ export async function POST(req: NextRequest) {
         stima_riservata: prezzo ? Math.round(prezzo * 0.92) : undefined
       };
 
+      // Eseguiamo l'auto-apprendimento delle tassonomie
+      try {
+        await saveTaxonomiesIfNew(listingsPayload);
+      } catch (taxErr) {
+        console.error("Errore nell'auto-apprendimento delle tassonomie:", taxErr);
+      }
+
       importedListings.push(listingsPayload);
+    }
+
+    if (onlyTaxonomies) {
+      return NextResponse.json({
+        success: true,
+        onlyTaxonomies: true,
+        message: `Estrazione completata. Analizzati con successo ${importedListings.length} immobili nel file Getrix e aggiornate le tassonomie nel file taxonomies.json. Nessun immobile è stato inserito o modificato nel database MySQL.`
+      });
     }
 
     // --- SALVATAGGIO REALE IN MYSQL ---

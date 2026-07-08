@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { saveTaxonomiesIfNew } from '@/lib/taxonomies';
 
 export async function GET() {
   try {
@@ -89,6 +90,16 @@ export async function POST(req: Request) {
         businessDetails: true,
       }
     });
+
+    // Eseguiamo l'auto-apprendimento delle tassonomie in background
+    try {
+      await saveTaxonomiesIfNew({
+        ...baseData,
+        businessDetails
+      });
+    } catch (taxErr) {
+      console.error("Errore nell'auto-apprendimento delle tassonomie:", taxErr);
+    }
 
     return NextResponse.json(created);
   } catch (error: any) {

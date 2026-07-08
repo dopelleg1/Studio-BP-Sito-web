@@ -34,7 +34,8 @@ import {
   Star,
   Instagram,
   Share2,
-  ExternalLink
+  ExternalLink,
+  Tag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoRound, LogoRectangular } from '@/components/Logo';
@@ -284,8 +285,8 @@ export default function Backoffice() {
     return INITIAL_LEADS;
   });
 
-  // Vista Corrente: 'listings' | 'leads' | 'social'
-  const [activeTab, setActiveTab] = useState<'listings' | 'leads' | 'social'>('listings');
+  // Vista Corrente: 'listings' | 'leads' | 'social' | 'taxonomies'
+  const [activeTab, setActiveTab] = useState<'listings' | 'leads' | 'social' | 'taxonomies'>('listings');
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
@@ -296,6 +297,32 @@ export default function Backoffice() {
   const [newSocialUrl, setNewSocialUrl] = useState<string>('');
   const [newSocialEmbed, setNewSocialEmbed] = useState<string>('');
   const [newSocialCaption, setNewSocialCaption] = useState<string>('');
+
+  // Stati per la gestione delle Tassonomie
+  const [taxonomies, setTaxonomies] = useState<Record<string, string[]>>({
+    TIPO_ANNUNCIO: [],
+    REGIME_CONTRATTUALE: [],
+    SETTORE_MERCEOLOGICO: [],
+    STATO_DEL_BENE: [],
+    RISCALDAMENTO_IMPIANTI: [],
+    DISPONIBILITA_SUL_MERCATO: [],
+    CATEGORIA: []
+  });
+  const [selectedTaxonomyName, setSelectedTaxonomyName] = useState<string>('TIPO_ANNUNCIO');
+  const [newTaxonomyValue, setNewTaxonomyValue] = useState<string>('');
+  const [editingTaxonomyValue, setEditingTaxonomyValue] = useState<string>('');
+  const [editingTaxonomyIndex, setEditingTaxonomyIndex] = useState<number | null>(null);
+  const [taxonomiesLoading, setTaxonomiesLoading] = useState<boolean>(true);
+
+  // Stato opzione Getrix solo tassonomie
+  const [importOnlyTaxonomies, setImportOnlyTaxonomies] = useState<boolean>(false);
+
+  // Nuovi stati per l'inserimento di tassonomie personalizzate nel form di creazione/modifica
+  const [customTipologia, setCustomTipologia] = useState<string>('');
+  const [customStato, setCustomStato] = useState<string>('');
+  const [customRiscaldamento, setCustomRiscaldamento] = useState<string>('');
+  const [customDisponibilita, setCustomDisponibilita] = useState<string>('');
+  const [customSettore, setCustomSettore] = useState<string>('');
 
   // Filtri nella tabella
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -308,6 +335,7 @@ export default function Backoffice() {
   const [formCategory, setFormCategory] = useState<CategoriaListing>('IMMOBILE');
   const [formContratto, setFormContratto] = useState<TipoContratto>('VENDITA');
   const [formTitolo, setFormTitolo] = useState<string>('');
+  const [formTipologia, setFormTipologia] = useState<string>('Appartamento');
   const [formRiferimento, setFormRiferimento] = useState<string>('');
   const [formPrezzo, setFormPrezzo] = useState<number>(0);
   const [formIndirizzo, setFormIndirizzo] = useState<string>('');
@@ -395,14 +423,14 @@ export default function Backoffice() {
   };
 
   // Funzione per l'importazione Getrix
-  const handleGetrixImport = async (urlToFetch: string, forceOverwrite: boolean, isAutomatic: boolean = false) => {
+  const handleGetrixImport = async (urlToFetch: string, forceOverwrite: boolean, onlyTaxonomies: boolean = false, isAutomatic: boolean = false) => {
     setIsImporting(true);
     setImportStats(null);
     try {
       const response = await fetch('/api/import-getrix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: urlToFetch, force: forceOverwrite })
+        body: JSON.stringify({ url: urlToFetch, force: forceOverwrite, onlyTaxonomies })
       });
 
       if (!response.ok) {
@@ -413,6 +441,13 @@ export default function Backoffice() {
       const result = await response.json();
       if (!result.success) {
         throw new Error(result.error || 'Formato di risposta non valido dall\'API Getrix');
+      }
+
+      if (onlyTaxonomies) {
+        showToast(result.message || "Tassonomie importate con successo!");
+        fetchTaxonomies();
+        setIsImporting(false);
+        return;
       }
 
       // Recuperiamo gli annunci aggiornati direttamente da MySQL
@@ -578,6 +613,112 @@ export default function Backoffice() {
     }
   };
 
+  // Caricamento delle tassonomie dal file JSON
+  const fetchTaxonomies = async () => {
+    try {
+      setTaxonomiesLoading(true);
+      const res = await fetch('/api/taxonomies');
+      if (res.ok) {
+        const data = await res.json();
+        setTaxonomies(data);
+      }
+    } catch (e) {
+      console.error("Errore caricamento tassonomie in backoffice:", e);
+    } finally {
+      setTaxonomiesLoading(false);
+    }
+  };
+
+  // Creazione nuovo termine tassonomia
+  const handleAddTaxonomy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaxonomyValue || newTaxonomyValue.trim() === '') {
+      alert("Il valore non può essere vuoto.");
+      return;
+    }
+    try {
+      const res = await fetch('/api/taxonomies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add',
+          taxonomy: selectedTaxonomyName,
+          value: newTaxonomyValue
+        })
+      });
+      if (res.ok) {
+        const updatedTax = await res.json();
+        setTaxonomies(updatedTax);
+        setNewTaxonomyValue('');
+        showToast(`Nuova voce aggiunta a ${selectedTaxonomyName}!`);
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Impossibile aggiungere la voce. Riprova.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Errore di rete.");
+    }
+  };
+
+  // Aggiornamento termine tassonomia
+  const handleUpdateTaxonomy = async (oldValue: string, newValue: string) => {
+    if (!newValue || newValue.trim() === '') {
+      alert("Il valore non può essere vuoto.");
+      return;
+    }
+    try {
+      const res = await fetch('/api/taxonomies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update',
+          taxonomy: selectedTaxonomyName,
+          oldValue,
+          newValue
+        })
+      });
+      if (res.ok) {
+        const updatedTax = await res.json();
+        setTaxonomies(updatedTax);
+        setEditingTaxonomyIndex(null);
+        setEditingTaxonomyValue('');
+        showToast("Voce aggiornata con successo!");
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Impossibile aggiornare la voce.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Cancellazione termine tassonomia
+  const handleDeleteTaxonomy = async (value: string) => {
+    if (!confirm(`Sei sicuro di voler eliminare definitivamente "${value}" da ${selectedTaxonomyName}?`)) return;
+    try {
+      const res = await fetch('/api/taxonomies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete',
+          taxonomy: selectedTaxonomyName,
+          value
+        })
+      });
+      if (res.ok) {
+        const updatedTax = await res.json();
+        setTaxonomies(updatedTax);
+        showToast("Voce eliminata correttamente.");
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Impossibile eliminare la voce.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Elimina inserzione da MySQL Prisma
   const handleDeleteListing = (listingId: number) => {
     setDeleteConfirmId(listingId);
@@ -640,18 +781,24 @@ export default function Backoffice() {
     const s = String(val).replace(/\[object Object\]/gi, '').trim();
     return s === 'undefined' || s === 'null' ? '' : s;
   };
-
   // Edit click: pre-compila lo stato locale del form
   const handleEditClick = (listing: Listing) => {
     setEditingListing(listing);
     setFormCategory(listing.categoria);
     setFormContratto(listing.tipo_contratto);
     setFormTitolo(cleanVal(listing.titolo));
+    setFormTipologia(cleanVal(listing.tipologia) || 'Appartamento');
     setFormRiferimento(cleanVal(listing.riferimento));
     setFormPrezzo(listing.prezzo);
     setFormIndirizzo(cleanVal(listing.indirizzo).replace(/^,\s*/, ''));
     setFormImmagini(listing.immagini && listing.immagini.length > 0 ? listing.immagini : ['https://picsum.photos/seed/duomo/1200/800']);
     setFormDescrizione(cleanVal(listing.descrizione));
+
+    setCustomTipologia('');
+    setCustomStato('');
+    setCustomRiscaldamento('');
+    setCustomDisponibilita('');
+    setCustomSettore('');
 
     // Dettagli Immobile
     if (listing.propertyDetails) {
@@ -712,9 +859,16 @@ export default function Backoffice() {
     setFormTitolo('');
     setFormRiferimento('');
     setFormPrezzo(0);
+    setFormTipologia('Appartamento');
     setFormIndirizzo('');
     setFormImmagini(['https://picsum.photos/seed/duomo/1200/800']);
     setFormDescrizione('');
+
+    setCustomTipologia('');
+    setCustomStato('');
+    setCustomRiscaldamento('');
+    setCustomDisponibilita('');
+    setCustomSettore('');
 
     setFormMq(110);
     setFormStanze(4);
@@ -773,6 +927,12 @@ export default function Backoffice() {
       }
     }
 
+    const finalTipologia = formTipologia === '__NEW__' ? customTipologia.trim() : formTipologia;
+    const finalStato = formStatoImmobile === '__NEW__' ? customStato.trim() : formStatoImmobile;
+    const finalRiscaldamento = formRiscaldamento === '__NEW__' ? customRiscaldamento.trim() : formRiscaldamento;
+    const finalDisponibilita = formDisponibilita === '__NEW__' ? customDisponibilita.trim() : formDisponibilita;
+    const finalSettore = formSettore === '__NEW__' ? customSettore.trim() : formSettore;
+
     const payload: any = {
       titolo: formTitolo,
       descrizione: formDescrizione,
@@ -782,16 +942,17 @@ export default function Backoffice() {
       categoria: formCategory,
       immagini: formImmagini,
       riferimento: formRiferimento.trim() || undefined,
+      tipologia: finalTipologia,
       
       // Amministrativi ed Extra
       provvigione: formProvvigione,
       tassazione: formTassazione,
-      stato_immobile: formStatoImmobile,
+      stato_immobile: finalStato,
       anno_costruzione: formAnnoCostruzione,
-      riscaldamento: formRiscaldamento,
-      disponibilita: formDisponibilita,
+      riscaldamento: finalRiscaldamento,
+      disponibilita: finalDisponibilita,
       spese_condominiali: formSpeseCondo,
-
+      
       // Riservati Studio BP
       stima_riservata: formStimaRiservata > 0 ? Number(formStimaRiservata) : Math.round(Number(formPrezzo) * 0.92),
       proprietario_nome: formProprietarioNome || 'In attesa di scheda proprietario',
@@ -811,7 +972,7 @@ export default function Backoffice() {
       };
     } else {
       payload.businessDetails = {
-        settore_merceologico: formSettore,
+        settore_merceologico: finalSettore,
         fatturato_annuo: formFatturato ? Number(formFatturato) : undefined,
         canone_mura: formCanoneMura ? Number(formCanoneMura) : undefined,
         utile_netto: formUtile ? Number(formUtile) : undefined,
@@ -1023,7 +1184,7 @@ export default function Backoffice() {
     if (shouldAutoImport) {
       const timer = setTimeout(() => {
         showToast('Avvio dell\'importazione automatica settimanale Getrix...');
-        handleGetrixImport('http://feed.getrix.it/xml/62E6BB7C-0F18-4F3F-AE2A-4CBADDBFF53B.zip', false, true);
+        handleGetrixImport('http://feed.getrix.it/xml/62E6BB7C-0F18-4F3F-AE2A-4CBADDBFF53B.zip', false, false, true);
         localStorage.setItem('sbp_last_getrix_import_ts', String(getNowTimestamp()));
       }, 2500);
       return () => clearTimeout(timer);
@@ -1037,6 +1198,13 @@ export default function Backoffice() {
       fetchSocialPosts();
     }
   }, [activeTab, isAuthenticated]);
+
+  // Carica le tassonomie al cambio tab o all'apertura del modulo
+  useEffect(() => {
+    if ((activeTab === 'taxonomies' || isFormOpen) && isAuthenticated) {
+      fetchTaxonomies();
+    }
+  }, [activeTab, isFormOpen, isAuthenticated]);
 
   // Filtra listings in tempo reale per la schermata
   const filteredListings = listings.filter(l => {
@@ -1261,7 +1429,7 @@ export default function Backoffice() {
             </div>
 
             {/* SEZIONE FILTRI E CONTROLLO TAB MULTI-SCHERMO */}
-            <div className="flex border-b border-slate-800 p-1 bg-slate-950 rounded-2xl max-w-xl">
+            <div className="flex border-b border-slate-800 p-1 bg-slate-950 rounded-2xl max-w-3xl">
               <button
                 onClick={() => { setActiveTab('listings'); setIsFormOpen(false); }}
                 className={`flex-1 py-3 px-2 text-center text-[10px] md:text-xs uppercase font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -1281,13 +1449,22 @@ export default function Backoffice() {
                 <span>Leads CRM ({leads.filter(l => l.status === 'NEW').length})</span>
               </button>
               <button
-                onClick={() => { setActiveTab('social'); setIsFormOpen(false); }}
+                onClick={() => { setActiveTab('social'); setIsFormOpen(false); fetchSocialPosts(); }}
                 className={`flex-1 py-3 px-2 text-center text-[10px] md:text-xs uppercase font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   activeTab === 'social' ? 'bg-slate-900 text-amber-400 border border-slate-800' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 <Instagram size={13} />
-                <span>Studio BP Social</span>
+                <span>Social Feed</span>
+              </button>
+              <button
+                onClick={() => { setActiveTab('taxonomies'); setIsFormOpen(false); fetchTaxonomies(); }}
+                className={`flex-1 py-3 px-2 text-center text-[10px] md:text-xs uppercase font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  activeTab === 'taxonomies' ? 'bg-slate-900 text-amber-400 border border-slate-800' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Tag size={13} />
+                <span>Gestione Tassonomie</span>
               </button>
             </div>
 
@@ -1365,6 +1542,24 @@ export default function Backoffice() {
                         </label>
                       </div>
 
+                      <div className="bg-slate-950 border border-slate-850 p-4 rounded-xl flex items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                          <span className="text-xs font-bold text-white block">Importa solo Tassonomie</span>
+                          <p className="text-[10.5px] text-slate-500">
+                            Se attivo, verranno importati ed aggiornati solo i tipi di riscaldamento, stati immobili ed altre categorie. Nessun immobile verrà salvato nel database.
+                          </p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={importOnlyTaxonomies}
+                            onChange={(e) => setImportOnlyTaxonomies(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-400 peer-checked:after:bg-slate-950 peer-checked:after:border-amber-400" />
+                        </label>
+                      </div>
+
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
                         <div className="space-y-1">
                           <span className="text-[10px] uppercase font-black text-slate-500 tracking-wider block">Ultimo Import di Successo:</span>
@@ -1376,7 +1571,7 @@ export default function Backoffice() {
                         <button
                           type="button"
                           disabled={isImporting}
-                          onClick={() => handleGetrixImport(importUrl, importForce)}
+                          onClick={() => handleGetrixImport(importUrl, importForce, importOnlyTaxonomies)}
                           className={`px-6 py-3.5 bg-amber-400 hover:bg-amber-500 disabled:bg-slate-800 text-slate-950 disabled:text-slate-600 font-black uppercase tracking-widest text-xs rounded-xl transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2 ${
                             isImporting ? 'animate-pulse' : ''
                           }`}
@@ -1554,6 +1749,30 @@ export default function Backoffice() {
                             className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                             required
                           />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-black text-slate-400 block tracking-wider">Tipo di Annuncio (Tipologia)</label>
+                          <select
+                            value={formTipologia}
+                            onChange={(e) => setFormTipologia(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                          >
+                            {(taxonomies.TIPO_ANNUNCIO || []).map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                            <option value="__NEW__">+ Inserisci personalizzato...</option>
+                          </select>
+                          {formTipologia === '__NEW__' && (
+                            <input
+                              type="text"
+                              value={customTipologia}
+                              onChange={(e) => setCustomTipologia(e.target.value)}
+                              placeholder="Specifica tipologia personalizzata..."
+                              className="w-full bg-slate-950 border border-slate-800 px-4 py-2 mt-2 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                              required
+                            />
+                          )}
                         </div>
 
                         <div className="space-y-1.5">
@@ -1780,13 +1999,26 @@ export default function Backoffice() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                           <div className="space-y-1.5">
                             <label className="text-[10px] uppercase font-black text-slate-400 block">Settore Merceologico</label>
-                            <input
-                              type="text"
+                            <select
                               value={formSettore}
                               onChange={(e) => setFormSettore(e.target.value)}
-                              placeholder="E.g. Bar rionali / Hotel / Retail"
-                              className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white"
-                            />
+                              className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                            >
+                              {(taxonomies.SETTORE_MERCEOLOGICO || []).map(s => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                              <option value="__NEW__">+ Inserisci personalizzato...</option>
+                            </select>
+                            {formSettore === '__NEW__' && (
+                              <input
+                                type="text"
+                                value={customSettore}
+                                onChange={(e) => setCustomSettore(e.target.value)}
+                                placeholder="Specifica settore personalizzato..."
+                                className="w-full bg-slate-950 border border-slate-800 px-4 py-2 mt-2 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                                required
+                              />
+                            )}
                           </div>
 
                           <div className="space-y-1.5">
@@ -1856,13 +2088,26 @@ export default function Backoffice() {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                         <div className="space-y-1.5">
                           <label className="text-[10px] uppercase font-black text-slate-400 block">Stato del Bene</label>
-                          <input
-                            type="text"
+                          <select
                             value={formStatoImmobile}
                             onChange={(e) => setFormStatoImmobile(e.target.value)}
-                            placeholder="E.g. Ottimo / Ristrutturato recentemente"
-                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white"
-                          />
+                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                          >
+                            {(taxonomies.STATO_DEL_BENE || []).map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                            <option value="__NEW__">+ Inserisci personalizzato...</option>
+                          </select>
+                          {formStatoImmobile === '__NEW__' && (
+                            <input
+                              type="text"
+                              value={customStato}
+                              onChange={(e) => setCustomStato(e.target.value)}
+                              placeholder="Specifica stato personalizzato..."
+                              className="w-full bg-slate-950 border border-slate-800 px-4 py-2 mt-2 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                              required
+                            />
+                          )}
                         </div>
 
                         <div className="space-y-1.5">
@@ -1872,30 +2117,56 @@ export default function Backoffice() {
                             value={formAnnoCostruzione}
                             onChange={(e) => setFormAnnoCostruzione(e.target.value)}
                             placeholder="E.g. 2018"
-                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white"
+                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white font-mono"
                           />
                         </div>
 
                         <div className="space-y-1.5">
                           <label className="text-[10px] uppercase font-black text-slate-400 block">Riscaldamento ed Impianti</label>
-                          <input
-                            type="text"
+                          <select
                             value={formRiscaldamento}
                             onChange={(e) => setFormRiscaldamento(e.target.value)}
-                            placeholder="E.g. Autonoma radiatori, rinfrescamento canalizzato"
-                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white"
-                          />
+                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                          >
+                            {(taxonomies.RISCALDAMENTO_IMPIANTI || []).map(r => (
+                              <option key={r} value={r}>{r}</option>
+                            ))}
+                            <option value="__NEW__">+ Inserisci personalizzato...</option>
+                          </select>
+                          {formRiscaldamento === '__NEW__' && (
+                            <input
+                              type="text"
+                              value={customRiscaldamento}
+                              onChange={(e) => setCustomRiscaldamento(e.target.value)}
+                              placeholder="Specifica riscaldamento personalizzato..."
+                              className="w-full bg-slate-950 border border-slate-800 px-4 py-2 mt-2 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                              required
+                            />
+                          )}
                         </div>
 
                         <div className="space-y-1.5">
                           <label className="text-[10px] uppercase font-black text-slate-400 block">Disponibilità sul mercato</label>
-                          <input
-                            type="text"
+                          <select
                             value={formDisponibilita}
                             onChange={(e) => setFormDisponibilita(e.target.value)}
-                            placeholder="E.g. Rogito immediato / Libero subito"
-                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white"
-                          />
+                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                          >
+                            {(taxonomies.DISPONIBILITA_SUL_MERCATO || []).map(d => (
+                              <option key={d} value={d}>{d}</option>
+                            ))}
+                            <option value="__NEW__">+ Inserisci personalizzato...</option>
+                          </select>
+                          {formDisponibilita === '__NEW__' && (
+                            <input
+                              type="text"
+                              value={customDisponibilita}
+                              onChange={(e) => setCustomDisponibilita(e.target.value)}
+                              placeholder="Specifica disponibilità personalizzata..."
+                              className="w-full bg-slate-950 border border-slate-800 px-4 py-2 mt-2 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                              required
+                            />
+                          )}
                         </div>
 
                         <div className="space-y-1.5">
@@ -2372,6 +2643,150 @@ export default function Backoffice() {
                   )}
                 </div>
 
+              </div>
+            )}
+
+            {/*******************************************************
+             * SCHERMO 6: GESTIONE TASSONOMIE
+             *******************************************************/}
+            {activeTab === 'taxonomies' && !isFormOpen && (
+              <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 md:p-6 space-y-6 text-left">
+                <div>
+                  <h3 className="text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
+                    <Tag size={16} className="text-amber-400" />
+                    <span>Gestione Tassonomie & Categorie</span>
+                  </h3>
+                  <p className="text-slate-500 text-xs mt-0.5">Gestisci le voci dei menu a discesa per i campi di descrizione degli immobili e delle attività.</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Selettore Tassonomia */}
+                  <div className="bg-slate-900 border border-slate-850 p-5 rounded-2xl space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">Scegli Tassonomia</label>
+                      <select
+                        value={selectedTaxonomyName}
+                        onChange={(e) => {
+                          setSelectedTaxonomyName(e.target.value);
+                          setEditingTaxonomyIndex(null);
+                          setEditingTaxonomyValue('');
+                          setNewTaxonomyValue('');
+                        }}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
+                      >
+                        <option value="TIPO_ANNUNCIO">Tipo di Annuncio (tipologia)</option>
+                        <option value="REGIME_CONTRATTUALE">Regime Contrattuale (contratto)</option>
+                        <option value="SETTORE_MERCEOLOGICO">Settore Merceologico</option>
+                        <option value="STATO_DEL_BENE">Stato del Bene (stato)</option>
+                        <option value="RISCALDAMENTO_IMPIANTI">Riscaldamento ed Impianti</option>
+                        <option value="DISPONIBILITA_SUL_MERCATO">Disponibilità sul Mercato</option>
+                        <option value="CATEGORIA">Categoria Principale</option>
+                      </select>
+                    </div>
+
+                    <form onSubmit={handleAddTaxonomy} className="space-y-2 pt-2 border-t border-slate-850">
+                      <label className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">Aggiungi nuova voce</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newTaxonomyValue}
+                          onChange={(e) => setNewTaxonomyValue(e.target.value)}
+                          placeholder="Nuovo valore..."
+                          className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                        />
+                        <button
+                          type="submit"
+                          className="px-3.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black rounded-xl text-xs uppercase cursor-pointer flex items-center justify-center"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Elenco Termini */}
+                  <div className="lg:col-span-2 bg-slate-900 border border-slate-850 p-5 rounded-2xl space-y-4">
+                    <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block">
+                      Valori registrati per: <span className="text-amber-400">{selectedTaxonomyName.replace(/_/g, ' ')}</span>
+                    </span>
+
+                    {taxonomiesLoading ? (
+                      <div className="py-8 text-center text-slate-500 text-xs font-semibold animate-pulse">
+                        Caricamento tassonomie in corso...
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left text-slate-350">
+                          <thead>
+                            <tr className="border-b border-slate-850 text-slate-400 text-[10px] uppercase font-bold tracking-wider">
+                              <th className="py-2.5 px-3">Valore</th>
+                              <th className="py-2.5 px-3 text-right">Azioni</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-850">
+                            {taxonomies[selectedTaxonomyName] && taxonomies[selectedTaxonomyName].length > 0 ? (
+                              taxonomies[selectedTaxonomyName].map((val, idx) => (
+                                <tr key={idx} className="hover:bg-slate-950/20">
+                                  <td className="py-3 px-3 font-semibold text-white">
+                                    {editingTaxonomyIndex === idx ? (
+                                      <div className="flex gap-2 items-center">
+                                        <input
+                                          type="text"
+                                          value={editingTaxonomyValue}
+                                          onChange={(e) => setEditingTaxonomyValue(e.target.value)}
+                                          className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-amber-455"
+                                        />
+                                        <button
+                                          onClick={() => handleUpdateTaxonomy(val, editingTaxonomyValue)}
+                                          className="p-1 bg-emerald-950 text-emerald-400 hover:bg-emerald-900 rounded-lg border border-emerald-900 cursor-pointer"
+                                        >
+                                          <Check size={12} />
+                                        </button>
+                                        <button
+                                          onClick={() => { setEditingTaxonomyIndex(null); setEditingTaxonomyValue(''); }}
+                                          className="p-1 bg-slate-850 text-slate-400 hover:bg-slate-800 rounded-lg border border-slate-800 cursor-pointer"
+                                        >
+                                          Chiudi
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span>{val}</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-3 text-right">
+                                    {editingTaxonomyIndex !== idx && (
+                                      <div className="inline-flex gap-2">
+                                        <button
+                                          onClick={() => { setEditingTaxonomyIndex(idx); setEditingTaxonomyValue(val); }}
+                                          className="p-1.5 bg-slate-950/60 border border-slate-800 text-slate-400 hover:text-white rounded-lg cursor-pointer"
+                                        >
+                                          <Edit2 size={12} />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteTaxonomy(val)}
+                                          className="p-1.5 bg-red-950/30 border border-red-950 text-red-400 hover:text-white rounded-lg cursor-pointer"
+                                        >
+                                          <Trash2 size={12} />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={2} className="py-6 text-center text-slate-500 italic">
+                                  Nessun valore memorizzato per questa tassonomia.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 

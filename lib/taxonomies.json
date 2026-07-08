@@ -1,0 +1,50 @@
+{
+  "TIPO_ANNUNCIO": [
+    "Appartamento",
+    "Attico",
+    "Villa",
+    "Ufficio",
+    "Negozio",
+    "Rustico",
+    "Capannone",
+    "Bar",
+    "Ristorante",
+    "Tabaccheria"
+  ],
+  "REGIME_CONTRATTUALE": [
+    "VENDITA",
+    "AFFITTO"
+  ],
+  "SETTORE_MERCEOLOGICO": [
+    "Ristorazione / Bar",
+    "Alimentare",
+    "Tabaccheria / Lotto",
+    "Servizi / Terziario",
+    "Industriale / Logistica",
+    "Abbigliamento / Retail"
+  ],
+  "STATO_DEL_BENE": [
+    "Ottimo / Abitabile subito",
+    "Finemente Ristrutturato",
+    "Da Ristrutturare",
+    "Buono Stato",
+    "Nuova Costruzione"
+  ],
+  "RISCALDAMENTO_IMPIANTI": [
+    "Autonomo",
+    "Centralizzato a soffitto",
+    "Centralizzato con valvole",
+    "Pompe di calore",
+    "Assente"
+  ],
+  "DISPONIBILITA_SUL_MERCATO": [
+    "Libero al rogito",
+    "Locato con rendita",
+    "Disponibile da subito",
+    "Occupato dal proprietario"
+  ],
+  "CATEGORIA": [
+    "IMMOBILE",
+    "BUSINESS"
+  ]
+}

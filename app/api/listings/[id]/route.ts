@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { saveTaxonomiesIfNew } from '@/lib/taxonomies';
 
 export async function PUT(
   req: Request,
@@ -91,6 +92,16 @@ export async function PUT(
       });
       // Rimuove i dettagli dell'immobile se l'annuncio è stato convertito in attività
       await db.propertyDetails.deleteMany({ where: { listingId: numericId } });
+    }
+
+    // Eseguiamo l'auto-apprendimento delle tassonomie in tempo reale
+    try {
+      await saveTaxonomiesIfNew({
+        ...baseData,
+        businessDetails
+      });
+    } catch (taxErr) {
+      console.error("Errore nell'auto-apprendimento delle tassonomie:", taxErr);
     }
 
     return NextResponse.json({ success: true, updated });
