@@ -278,6 +278,22 @@ export default function Homepage() {
   // Stato Visualizzazione Database / Console SQL finta per dimostrare l'unione dei due mondi
   const [showSqlViewer, setShowSqlViewer] = useState(false);
 
+  // Stati per i filtri aggiuntivi e ricerca libera sotto i risultati
+  const [subSearchQuery, setSubSearchQuery] = useState('');
+  const [subContractType, setSubContractType] = useState('Tutti');
+  const [subLocali, setSubLocali] = useState('Tutti');
+  const [subMaxPrice, setSubMaxPrice] = useState('Tutti');
+  const [subSector, setSubSector] = useState('Tutti');
+
+  // Reset dei filtri secondari al variare dei filtri principali
+  useEffect(() => {
+    setSubSearchQuery('');
+    setSubContractType('Tutti');
+    setSubLocali('Tutti');
+    setSubMaxPrice('Tutti');
+    setSubSector('Tutti');
+  }, [currentFilters]);
+
   // Feed Notifiche toast
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -563,6 +579,45 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
       if (currentFilters.budget === 'Fino a €5.000/mese' && l.prezzo > 5000) return false;
       if (currentFilters.budget === 'Fino a €25.000/mese' && l.prezzo > 25000) return false;
       if (currentFilters.budget === 'A Cessione' && l.prezzo < 50000) return false;
+    }
+
+    // --- NUOVI FILTRI INLINE AGGIUNTIVI (LIVE SUB-FILTERS) ---
+    
+    // 1. Ricerca Libera per Testo (Cerca in titolo, descrizione, comune, zona, riferimento)
+    if (subSearchQuery.trim() !== '') {
+      const q = subSearchQuery.toLowerCase().trim();
+      const matchText = l.titolo.toLowerCase().includes(q) || 
+                        l.descrizione.toLowerCase().includes(q) || 
+                        (l.zona && l.zona.toLowerCase().includes(q)) || 
+                        (l.comune && l.comune.toLowerCase().includes(q)) ||
+                        (l.riferimento && l.riferimento.toLowerCase().includes(q));
+      if (!matchText) return false;
+    }
+
+    // 2. Tipo Contratto (VENDITA / AFFITTO)
+    if (subContractType !== 'Tutti') {
+      if (l.tipo_contratto !== subContractType) return false;
+    }
+
+    // 3. Locali (Solo per Immobili)
+    if (currentFilters.category === 'IMMOBILE' && subLocali !== 'Tutti') {
+      if (subLocali === '4+') {
+        if (!l.propertyDetails || l.propertyDetails.stanze < 4) return false;
+      } else {
+        const nrLocali = parseInt(subLocali, 10);
+        if (!l.propertyDetails || l.propertyDetails.stanze !== nrLocali) return false;
+      }
+    }
+
+    // 4. Prezzo Massimo (Budget aggiuntivo)
+    if (subMaxPrice !== 'Tutti') {
+      const maxP = parseInt(subMaxPrice, 10);
+      if (l.prezzo > maxP) return false;
+    }
+
+    // 5. Settore Merceologico (Solo per Business)
+    if (currentFilters.category === 'BUSINESS' && subSector !== 'Tutti') {
+      if (l.businessDetails?.settore_merceologico !== subSector) return false;
     }
 
     return true;
@@ -1139,6 +1194,112 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
             >
               Rimuovi Filtro Ricerca
             </button>
+          </motion.div>
+        )}
+
+        {currentFilters && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-5 bg-slate-900 text-white rounded-2xl border border-slate-800 shadow-md grid grid-cols-1 md:grid-cols-4 gap-4 text-left"
+          >
+            {/* Campo 1: Ricerca Libera per Testo */}
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Ricerca Libera</label>
+              <input
+                type="text"
+                placeholder={currentFilters.category === 'IMMOBILE' ? "Città, zona, rif. o parola..." : "Cerca per parola chiave..."}
+                value={subSearchQuery}
+                onChange={(e) => setSubSearchQuery(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            {/* Campo 2: Tipo Contratto */}
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Tipo Contratto</label>
+              <select
+                value={subContractType}
+                onChange={(e) => setSubContractType(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+              >
+                <option value="Tutti">Tutti i contratti</option>
+                <option value="VENDITA">Vendita</option>
+                <option value="AFFITTO">Affitto</option>
+              </select>
+            </div>
+
+            {currentFilters.category === 'IMMOBILE' ? (
+              <>
+                {/* Campo 3: Locali (Solo Immobili) */}
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Locali</label>
+                  <select
+                    value={subLocali}
+                    onChange={(e) => setSubLocali(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  >
+                    <option value="Tutti">Qualsiasi locale</option>
+                    <option value="1">1 Locale (Monolocale)</option>
+                    <option value="2">2 Locali (Bilocale)</option>
+                    <option value="3">3 Locali (Trilocale)</option>
+                    <option value="4+">4 o più Locali</option>
+                  </select>
+                </div>
+
+                {/* Campo 4: Budget Massimo (Solo Immobili) */}
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Prezzo Massimo</label>
+                  <select
+                    value={subMaxPrice}
+                    onChange={(e) => setSubMaxPrice(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  >
+                    <option value="Tutti">Qualsiasi prezzo</option>
+                    <option value="150000">Fino a € 150.000</option>
+                    <option value="250000">Fino a € 250.000</option>
+                    <option value="350000">Fino a € 350.000</option>
+                    <option value="500000">Fino a € 500.000</option>
+                    <option value="1000000">Fino a € 1.000.000</option>
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Campo 3: Settore Merceologico (Solo Business) */}
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Settore</label>
+                  <select
+                    value={subSector}
+                    onChange={(e) => setSubSector(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  >
+                    <option value="Tutti">Tutti i settori</option>
+                    <option value="Bar/Ristorazione">Bar / Ristorazione</option>
+                    <option value="Tabaccheria">Tabaccheria / Lotto</option>
+                    <option value="Alimentare">Alimentare / Supermercati</option>
+                    <option value="Servizi">Servizi / Terziario</option>
+                    <option value="Industriale">Industriale / Logistica</option>
+                  </select>
+                </div>
+
+                {/* Campo 4: Budget Massimo (Solo Business) */}
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Fascia Mensile/Valore</label>
+                  <select
+                    value={subMaxPrice}
+                    onChange={(e) => setSubMaxPrice(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  >
+                    <option value="Tutti">Qualsiasi valore</option>
+                    <option value="5000">Fino a € 5.000/mese</option>
+                    <option value="15000">Fino a € 15.000/mese</option>
+                    <option value="100000">Fino a € 100.000</option>
+                    <option value="300000">Fino a € 300.000</option>
+                  </select>
+                </div>
+              </>
+            )}
           </motion.div>
         )}
 
