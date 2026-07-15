@@ -22,6 +22,9 @@ interface BusinessCardProps {
     tipo_contratto: 'VENDITA' | 'AFFITTO';
     immagini: string | string[] | any;
     riferimento?: string;
+    pubblica_indirizzo?: boolean;
+    trattativa_riservata?: boolean;
+    asta?: boolean;
   };
   details: BusinessDetails;
   onSelect?: (id: number) => void;
@@ -93,9 +96,15 @@ export default function BusinessCard({ listing, details, onSelect }: BusinessCar
 
         {/* Contenuto Corporate */}
         <div className="p-5 md:p-6 pb-4">
-          <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-accent mb-1.5">
-            <Briefcase size={12} />
-            <span>Codice Rif.: {listing.riferimento ? listing.riferimento.toUpperCase() : `#${listing.id}`}</span>
+          <div className="flex items-center justify-between gap-1.5 mb-2.5">
+            <span className="px-2 py-0.5 bg-accent/10 border border-accent/20 text-accent text-[9px] font-black tracking-wider uppercase rounded-md">
+              Rif: {listing.riferimento ? listing.riferimento.toUpperCase() : `#${listing.id}`}
+            </span>
+            {listing.asta && (
+              <span className="px-2 py-0.5 bg-amber-500 text-slate-950 text-[9.5px] font-black uppercase rounded-md tracking-wider">
+                ASTA COMMERCIALE
+              </span>
+            )}
           </div>
           
           <h3 className="text-base font-black text-white leading-snug group-hover:text-accent transition-colors duration-200 line-clamp-1">
@@ -104,7 +113,7 @@ export default function BusinessCard({ listing, details, onSelect }: BusinessCar
           
           <p className="text-xs text-slate-400 font-semibold flex items-center gap-1 mt-1">
             <MapPin size={11} className="shrink-0 text-accent" />
-            <span className="truncate">{addressSanitized}</span>
+            <span className="truncate">{listing.pubblica_indirizzo !== false ? addressSanitized : "Indirizzo Riservato"}</span>
           </p>
           
           <p className="text-xs text-slate-350 leading-relaxed mt-2.5 line-clamp-2 min-h-[32px]">
@@ -161,8 +170,14 @@ export default function BusinessCard({ listing, details, onSelect }: BusinessCar
           <div>
             <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none block">Valutazione</span>
             <span className="text-base font-black text-accent mt-0.5 block">
-              € {formattedPrezzo}
-              {listing.tipo_contratto === 'AFFITTO' && <span className="text-[11px] font-normal text-slate-500"> /mese</span>}
+              {listing.trattativa_riservata ? (
+                <span className="text-amber-500">Trattativa Riservata</span>
+              ) : (
+                <>
+                  € {formattedPrezzo}
+                  {listing.tipo_contratto === 'AFFITTO' && <span className="text-[11px] font-normal text-slate-400"> /mese</span>}
+                </>
+              )}
             </span>
           </div>
           <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/25 px-2 py-0.5 rounded font-black tracking-wider uppercase font-sans">
@@ -190,7 +205,7 @@ export default function BusinessCard({ listing, details, onSelect }: BusinessCar
           {/* Pulsante WhatsApp Diretto */}
           <a
             href={`https://wa.me/393792319582?text=${encodeURIComponent(
-              `Salve Studio BP, vorrei maggiori informazioni per l'attività commerciale: *${titleSanitized}* (Rif: ${listing.riferimento || 'N/D'} - ID: #${listing.id}) da € ${formattedPrezzo}.`
+              `Salve Studio BP, vorrei maggiori informazioni per l'attività commerciale: *${titleSanitized}* (Rif: ${listing.riferimento || 'N/D'} - ID: #${listing.id}) ${listing.trattativa_riservata ? 'con Trattativa Riservata' : `da € ${formattedPrezzo}`}.`
             )}`}
             target="_blank"
             rel="noopener noreferrer"

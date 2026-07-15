@@ -9,7 +9,20 @@
     "Capannone",
     "Bar",
     "Ristorante",
-    "Tabaccheria"
+    "Tabaccheria",
+    "Bar Tavola Calda - Fredda",
+    "Discoteca - Disco Pub - Locale Notturno",
+    "Bar - Tabacchi - Ricevitoria",
+    "Pasticceria - Gelateria",
+    "Attività Commerciale",
+    "Palestra e Impianti Sportivi",
+    "Parrucchieri Uomo - Donna",
+    "Alberghi - Hotels - Pensioni",
+    "Alimentari - Gastronomia",
+    "Panificio - Pastificio",
+    "Terreno edificabile",
+    "Bed & Breakfast",
+    "Asta"
   ],
   "REGIME_CONTRATTUALE": [
     "VENDITA",
@@ -21,21 +34,36 @@
     "Tabaccheria / Lotto",
     "Servizi / Terziario",
     "Industriale / Logistica",
-    "Abbigliamento / Retail"
+    "Abbigliamento / Retail",
+    "Bar Tavola Calda - Fredda",
+    "Discoteca - Disco Pub - Locale Notturno",
+    "Bar - Tabacchi - Ricevitoria",
+    "Pasticceria - Gelateria",
+    "Ristorante",
+    "Attività Commerciale",
+    "Palestra e Impianti Sportivi",
+    "Parrucchieri Uomo - Donna",
+    "Alberghi - Hotels - Pensioni",
+    "Alimentari - Gastronomia",
+    "Panificio - Pastificio",
+    "Bed & Breakfast"
   ],
   "STATO_DEL_BENE": [
     "Ottimo / Abitabile subito",
     "Finemente Ristrutturato",
     "Da Ristrutturare",
     "Buono Stato",
-    "Nuova Costruzione"
+    "Nuova Costruzione",
+    "Ottimo / Finemente Ristrutturato",
+    "Ottimo stato conservativo"
   ],
   "RISCALDAMENTO_IMPIANTI": [
     "Autonomo",
     "Centralizzato a soffitto",
     "Centralizzato con valvole",
     "Pompe di calore",
-    "Assente"
+    "Assente",
+    "Centralizzato"
   ],
   "DISPONIBILITA_SUL_MERCATO": [
     "Libero al rogito",

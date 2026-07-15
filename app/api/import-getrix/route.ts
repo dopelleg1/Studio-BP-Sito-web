@@ -57,6 +57,12 @@ interface Listing {
   proprietario_nome?: string;
   proprietario_telefono?: string;
   stima_riservata?: number;
+  pubblica_indirizzo?: boolean;
+  trattativa_riservata?: boolean;
+  asta?: boolean;
+  latitudine?: string | null;
+  longitudine?: string | null;
+  zoom?: number;
 }
 
 // Funzione helper per pulire e formattare le stringhe
@@ -419,6 +425,30 @@ export async function POST(req: NextRequest) {
         uniqueId = Math.abs(hash % 1000000);
       }
 
+      // Estrazione visibilità e opzioni avanzate
+      const pubblicaIndirizzo = item.PubblicaIndirizzo !== undefined ? String(item.PubblicaIndirizzo).toLowerCase() !== 'false' : true;
+      const trattativaRiservata = item.TrattativaRiservata !== undefined ? (String(item.TrattativaRiservata).toLowerCase() === 'true' || String(item.TrattativaRiservata) === '1') : false;
+      const latVal = item.Latitudine ? String(item.Latitudine).trim() : null;
+      const lngVal = item.Longitudine ? String(item.Longitudine).trim() : null;
+      const zoomVal = item.Zoom ? parseInt(item.Zoom, 10) : 12;
+
+      // Estrazione e decodifica Riscaldamento
+      const RISCALDAMENTO_MAPPING: Record<string, string> = {
+        "1": "Centralizzato",
+        "2": "Autonomo",
+        "3": "Centralizzato con valvole",
+        "4": "Assente",
+        "5": "Pompa di calore"
+      };
+      const rawRiscaldamento = item.Attivita?.Riscaldamento || item.Residenziale?.Riscaldamento || item.Riscaldamento;
+      const stringRiscaldamento = rawRiscaldamento !== undefined ? String(rawRiscaldamento).trim() : '';
+      const riscaldamentoDecoded = RISCALDAMENTO_MAPPING[stringRiscaldamento] || textInfo.riscaldamento || 'Autonomo';
+
+      // Riconoscimento Asta
+      const isAsta = item.Asta !== undefined 
+        ? (String(item.Asta).toLowerCase() === 'true' || String(item.Asta) === '1')
+        : (descrizione.toLowerCase().includes('asta immobiliare') || titolo.toLowerCase().includes('all\'asta'));
+
       // Campi specifici gestionali Studio BP fittizi ma credibili estratti dal testo
       const listingsPayload: Listing = {
         id: uniqueId,
@@ -440,15 +470,21 @@ export async function POST(req: NextRequest) {
 
         // Gestionali Studio BP
         stato_immobile: textInfo.stato || 'Ottimo / Abitabile subito',
-        riscaldamento: textInfo.riscaldamento || 'Autonomo',
+        riscaldamento: riscaldamentoDecoded,
         anno_costruzione: item.DataInserimento ? sanitizeString(item.DataInserimento).substring(0, 4) : '2015',
         disponibilita: 'Libero al rogito',
-        spese_condominiali: textInfo.affitto ? `${textInfo.affitto} €/mese` : undefined,
+        spese_condominiali: textInfo.affitto ? `${textInfo.affitto} e/mese` : undefined,
         provvigione: isBusiness ? '4% sul valore di cessione' : '3% + IVA',
         tassazione: 'Soggetto ad imposta di registro fissa',
         proprietario_nome: 'Referente Studio BP',
         proprietario_telefono: '011.6673087',
-        stima_riservata: prezzo ? Math.round(prezzo * 0.92) : undefined
+        stima_riservata: prezzo ? Math.round(prezzo * 0.92) : undefined,
+        pubblica_indirizzo: pubblicaIndirizzo,
+        trattativa_riservata: trattativaRiservata,
+        asta: isAsta,
+        latitudine: latVal,
+        longitudine: lngVal,
+        zoom: zoomVal
       };
 
       // Eseguiamo l'auto-apprendimento delle tassonomie
@@ -508,6 +544,12 @@ export async function POST(req: NextRequest) {
                 proprietario_nome: listingsPayload.proprietario_nome,
                 proprietario_telefono: listingsPayload.proprietario_telefono,
                 stima_riservata: listingsPayload.stima_riservata,
+                pubblica_indirizzo: listingsPayload.pubblica_indirizzo,
+                trattativa_riservata: listingsPayload.trattativa_riservata,
+                asta: listingsPayload.asta,
+                latitudine: listingsPayload.latitudine,
+                longitudine: listingsPayload.longitudine,
+                zoom: listingsPayload.zoom,
               }
             });
 
@@ -595,6 +637,12 @@ export async function POST(req: NextRequest) {
               proprietario_nome: listingsPayload.proprietario_nome,
               proprietario_telefono: listingsPayload.proprietario_telefono,
               stima_riservata: listingsPayload.stima_riservata,
+              pubblica_indirizzo: listingsPayload.pubblica_indirizzo,
+              trattativa_riservata: listingsPayload.trattativa_riservata,
+              asta: listingsPayload.asta,
+              latitudine: listingsPayload.latitudine,
+              longitudine: listingsPayload.longitudine,
+              zoom: listingsPayload.zoom,
               propertyDetails: listingsPayload.categoria === 'IMMOBILE' && listingsPayload.propertyDetails ? {
                 create: {
                   mq: listingsPayload.propertyDetails.mq,

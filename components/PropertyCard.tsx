@@ -24,6 +24,9 @@ interface PropertyCardProps {
     tipo_contratto: 'VENDITA' | 'AFFITTO';
     immagini: string | string[] | any;
     riferimento?: string;
+    pubblica_indirizzo?: boolean;
+    trattativa_riservata?: boolean;
+    asta?: boolean;
   };
   details: PropertyDetails;
   onSelect?: (id: number) => void;
@@ -83,9 +86,15 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
 
         {/* Contenuti di Testo */}
         <div className="p-5 md:p-6 pb-4">
-          <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-1.5">
-            <Building size={12} className="text-accent" />
-            <span>Codice Rif.: {listing.riferimento ? listing.riferimento.toUpperCase() : `#${listing.id}`}</span>
+          <div className="flex items-center justify-between gap-1.5 mb-2.5">
+            <span className="px-2 py-0.5 bg-accent/10 border border-accent/20 text-accent text-[9px] font-black tracking-wider uppercase rounded-md">
+              Rif: {listing.riferimento ? listing.riferimento.toUpperCase() : `#${listing.id}`}
+            </span>
+            {listing.asta && (
+              <span className="px-2 py-0.5 bg-amber-500 text-slate-950 text-[9.5px] font-black uppercase rounded-md tracking-wider">
+                ASTA TRIBUNALE
+              </span>
+            )}
           </div>
 
           <h3 className="text-base font-black text-primary leading-snug group-hover:text-accent transition-colors duration-200 line-clamp-1">
@@ -93,7 +102,7 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
           </h3>
           <p className="text-xs text-slate-400 font-semibold flex items-center gap-1 mt-1">
             <MapPin size={11} className="shrink-0 text-accent font-bold" />
-            <span className="truncate">{addressSanitized}</span>
+            <span className="truncate">{listing.pubblica_indirizzo !== false ? addressSanitized : "Indirizzo Riservato"}</span>
           </p>
           <p className="text-xs text-slate-500 leading-relaxed mt-2.5 line-clamp-2 min-h-[32px]">
             {listing.descrizione}
@@ -142,8 +151,14 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
           <div>
             <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest leading-none block">Prezzo Richiesto</span>
             <span className="text-base font-black text-primary mt-0.5 block">
-              € {formattedPrezzo}
-              {listing.tipo_contratto === 'AFFITTO' && <span className="text-[11px] font-normal text-slate-400"> /mese</span>}
+              {listing.trattativa_riservata ? (
+                <span className="text-amber-600">Trattativa Riservata</span>
+              ) : (
+                <>
+                  € {formattedPrezzo}
+                  {listing.tipo_contratto === 'AFFITTO' && <span className="text-[11px] font-normal text-slate-400"> /mese</span>}
+                </>
+              )}
             </span>
           </div>
           <span className="text-[9px] bg-emerald-50 text-emerald-800 border border-emerald-100 px-2 py-0.5 rounded font-black tracking-wider uppercase font-sans">
@@ -171,7 +186,7 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
           {/* Pulsante WhatsApp Diretto */}
           <a
             href={`https://wa.me/393792319582?text=${encodeURIComponent(
-              `Salve Studio BP, vorrei maggiori informazioni per l'immobile: *${titleSanitized}* (Rif: ${listing.riferimento || 'N/D'} - ID: #${listing.id}) da € ${formattedPrezzo}.`
+              `Salve Studio BP, vorrei maggiori informazioni per l'immobile: *${titleSanitized}* (Rif: ${listing.riferimento || 'N/D'} - ID: #${listing.id}) ${listing.trattativa_riservata ? 'con Trattativa Riservata' : `da € ${formattedPrezzo}`}.`
             )}`}
             target="_blank"
             rel="noopener noreferrer"

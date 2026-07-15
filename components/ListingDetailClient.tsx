@@ -78,6 +78,12 @@ interface Listing {
   getrix_id?: string;
   comune?: string;
   zona?: string;
+  pubblica_indirizzo?: boolean;
+  trattativa_riservata?: boolean;
+  asta?: boolean;
+  latitudine?: string | null;
+  longitudine?: string | null;
+  zoom?: number;
 }
 
 interface ListingDetailClientProps {
@@ -478,6 +484,11 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
               }`}>
                 {isB2C ? 'Soluzione Abitativa' : 'Opportunità d&apos;Affari Commerciali'}
               </span>
+              {listing.asta && (
+                <span className="text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full bg-amber-500 text-slate-950 shadow-md">
+                  ASTA IMMOBILIARE
+                </span>
+              )}
               <span className="text-[10px] text-slate-400 font-mono">Codice Rif.: {listing.riferimento ? listing.riferimento.toUpperCase() : `#${listing.id}`}</span>
             </div>
 
@@ -488,7 +499,7 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
               
               <div className="flex items-center gap-1.5 text-slate-500 text-xs font-semibold">
                 <MapPin size={14} className="text-amber-500" />
-                <span>{listing.indirizzo}</span>
+                <span>{listing.pubblica_indirizzo !== false ? listing.indirizzo : "Indirizzo Riservato"}</span>
               </div>
             </div>
 
@@ -497,8 +508,14 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
               <div>
                 <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black block">Prezzo Richiesto</span>
                 <p className="text-2xl md:text-3.5xl font-black text-slate-900 mt-1">
-                  € {formattedPrezzo}
-                  {listing.tipo_contratto === 'AFFITTO' ? <span className="text-sm font-normal text-slate-500"> /mese</span> : ''}
+                  {listing.trattativa_riservata ? (
+                    <span className="text-amber-600">Trattativa Riservata</span>
+                  ) : (
+                    <>
+                      € {formattedPrezzo}
+                      {listing.tipo_contratto === 'AFFITTO' ? <span className="text-sm font-normal text-slate-500"> /mese</span> : ''}
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -762,19 +779,30 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
 
             <div className="h-64 bg-transparent border border-slate-200 rounded-2xl relative overflow-hidden flex flex-col justify-between p-4 text-slate-700 font-mono text-[10px]">
               {/* Mappa reale Google Maps in background (a colori) */}
-              <iframe
-                src={`https://maps.google.com/maps?q=${encodeURIComponent(
-                  listing.zona && listing.comune
+              {(() => {
+                let mapQuery = "";
+                if (listing.pubblica_indirizzo !== false) {
+                  if (listing.latitudine && listing.longitudine) {
+                    mapQuery = `${listing.latitudine},${listing.longitudine}`;
+                  } else {
+                    mapQuery = listing.indirizzo;
+                  }
+                } else {
+                  mapQuery = listing.zona && listing.comune
                     ? `${listing.zona}, ${listing.comune}`
-                    : listing.comune
-                    ? listing.comune
-                    : listing.indirizzo
-                )}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-                className="absolute inset-0 w-full h-full border-0 -z-10 opacity-100 pointer-events-none select-none"
-                allowFullScreen={false}
-                loading="lazy"
-                title="Mappa di Posizione"
-              />
+                    : listing.comune || "Torino";
+                }
+                const mapZoom = listing.zoom ? Number(listing.zoom) : 14;
+                return (
+                  <iframe
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=${mapZoom}&ie=UTF8&iwloc=&output=embed`}
+                    className="absolute inset-0 w-full h-full border-0 -z-10 opacity-100 pointer-events-none select-none"
+                    allowFullScreen={false}
+                    loading="lazy"
+                    title="Mappa di Posizione"
+                  />
+                );
+              })()}
 
               <div className="absolute inset-0 bg-white/5 pointer-events-none -z-10" />
               
@@ -783,7 +811,7 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
                   <MapPin size={18} className="text-amber-400" />
                 </div>
                 <p className="font-extrabold uppercase text-[10px] tracking-widest text-white leading-normal">
-                  {listing.indirizzo}
+                  {listing.pubblica_indirizzo !== false ? listing.indirizzo : `${listing.zona || ''} ${listing.comune || ''}`}
                 </p>
                 <p className="text-slate-400 text-[9px] font-semibold">
                   Ubicazione Certificata Studio BP Italia S.r.l.
@@ -959,7 +987,11 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
         <div className="flex-1">
           <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide block leading-none">Valore Intermediazione</span>
           <span className="text-base font-black text-slate-900 block mt-0.5">
-            € {formattedPrezzo}
+            {listing.trattativa_riservata ? (
+              <span className="text-amber-600 text-sm">Trattativa Riservata</span>
+            ) : (
+              `€ ${formattedPrezzo}`
+            )}
           </span>
         </div>
 

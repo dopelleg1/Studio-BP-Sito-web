@@ -42,6 +42,12 @@ export async function PUT(
         proprietario_nome: baseData.proprietario_nome,
         proprietario_telefono: baseData.proprietario_telefono,
         stima_riservata: baseData.stima_riservata ? Number(baseData.stima_riservata) : null,
+        pubblica_indirizzo: baseData.pubblica_indirizzo !== undefined ? Boolean(baseData.pubblica_indirizzo) : true,
+        trattativa_riservata: baseData.trattativa_riservata !== undefined ? Boolean(baseData.trattativa_riservata) : false,
+        asta: baseData.asta !== undefined ? Boolean(baseData.asta) : false,
+        latitudine: baseData.latitudine || null,
+        longitudine: baseData.longitudine || null,
+        zoom: baseData.zoom !== undefined ? Number(baseData.zoom) : 12,
       },
     });
 

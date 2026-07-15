@@ -108,6 +108,12 @@ interface Listing {
   riscaldamento?: string;
   disponibilita?: string;
   spese_condominiali?: string;
+  pubblica_indirizzo?: boolean;
+  trattativa_riservata?: boolean;
+  asta?: boolean;
+  latitudine?: string | null;
+  longitudine?: string | null;
+  zoom?: number;
 }
 
 interface Lead {
@@ -372,6 +378,14 @@ export default function Backoffice() {
   const [formStimaRiservata, setFormStimaRiservata] = useState<number>(0);
   const [formProprietarioNome, setFormProprietarioNome] = useState<string>('');
   const [formProprietarioTelefono, setFormProprietarioTelefono] = useState<string>('');
+
+  // Campi gestionali visibilità, aste e mappe
+  const [formPubblicaIndirizzo, setFormPubblicaIndirizzo] = useState<boolean>(true);
+  const [formTrattativaRiservata, setFormTrattativaRiservata] = useState<boolean>(false);
+  const [formAsta, setFormAsta] = useState<boolean>(false);
+  const [formLatitudine, setFormLatitudine] = useState<string>('');
+  const [formLongitudine, setFormLongitudine] = useState<string>('');
+  const [formZoom, setFormZoom] = useState<number>(12);
 
   // Stati per l'importazione Getrix
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
@@ -848,6 +862,14 @@ export default function Backoffice() {
     setFormProprietarioNome(cleanVal(listing.proprietario_nome) || 'Mario Rossi');
     setFormProprietarioTelefono(cleanVal(listing.proprietario_telefono) || '+39 333 1122334');
 
+    // Visibilità, aste e mappe
+    setFormPubblicaIndirizzo(listing.pubblica_indirizzo !== undefined ? Boolean(listing.pubblica_indirizzo) : true);
+    setFormTrattativaRiservata(listing.trattativa_riservata !== undefined ? Boolean(listing.trattativa_riservata) : false);
+    setFormAsta(listing.asta !== undefined ? Boolean(listing.asta) : false);
+    setFormLatitudine(cleanVal(listing.latitudine));
+    setFormLongitudine(cleanVal(listing.longitudine));
+    setFormZoom(listing.zoom !== undefined ? Number(listing.zoom) : 12);
+
     setIsFormOpen(true);
   };
 
@@ -896,6 +918,14 @@ export default function Backoffice() {
     setFormStimaRiservata(0);
     setFormProprietarioNome('');
     setFormProprietarioTelefono('');
+
+    // Visibilità, aste e mappe
+    setFormPubblicaIndirizzo(true);
+    setFormTrattativaRiservata(false);
+    setFormAsta(false);
+    setFormLatitudine('');
+    setFormLongitudine('');
+    setFormZoom(12);
 
     setIsFormOpen(true);
   };
@@ -957,6 +987,14 @@ export default function Backoffice() {
       stima_riservata: formStimaRiservata > 0 ? Number(formStimaRiservata) : Math.round(Number(formPrezzo) * 0.92),
       proprietario_nome: formProprietarioNome || 'In attesa di scheda proprietario',
       proprietario_telefono: formProprietarioTelefono || '+39 000 000000',
+
+      // Visibilità, aste e mappe
+      pubblica_indirizzo: Boolean(formPubblicaIndirizzo),
+      trattativa_riservata: Boolean(formTrattativaRiservata),
+      asta: Boolean(formAsta),
+      latitudine: formLatitudine.trim() || null,
+      longitudine: formLongitudine.trim() || null,
+      zoom: Number(formZoom),
     };
 
     // Costruisci i dettagli specifici in base alla categoria
@@ -2193,21 +2231,91 @@ export default function Backoffice() {
                       </div>
                     </div>
 
-                    {/* Mappa - coordinata visualizzata */}
-                    <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl space-y-4">
-                      <h4 className="text-sm font-black text-amber-400 uppercase tracking-widest border-l-2 border-amber-400 pl-2">7. Mappa ed Ubicazione</h4>
-                      <p className="text-[11px] text-slate-400">
-                        Compila l&apos;ubicazione dell&apos;asset. Studio BP genera fittiziamente la mappa geopolitica securizzata WGS84 per l&apos;utente nella pagina pubblica a tutela della privacy proprietario.
+                    {/* Mappa, Ubicazione e Opzioni Avanzate */}
+                    <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl space-y-5">
+                      <h4 className="text-sm font-black text-amber-400 uppercase tracking-widest border-l-2 border-amber-400 pl-2">7. Visibilità, Asta ed Ubicazione</h4>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Imposta la privacy dell&apos;annuncio (nascondere l&apos;indirizzo o il prezzo al pubblico), indica se si tratta di un&apos;asta immobiliare ed inserisci le coordinate esatte per centrare la mappa.
                       </p>
-                      <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-black text-slate-400 block">Punto e Coordinate di Riferimento GPS</label>
-                        <input
-                          type="text"
-                          placeholder="Fittizio o Reale e.g. 45.4642° N / 9.1900° E"
-                          className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-slate-500 font-mono focus:outline-none"
-                          disabled
-                          value="COORD ACCURATE GENERATE AUTOMATICAMENTE BASATE SU INDIRIZZO"
-                        />
+                      
+                      {/* Checkbox per Opzioni Visibilità e Asta */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={formPubblicaIndirizzo}
+                            onChange={(e) => setFormPubblicaIndirizzo(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-800 text-amber-500 focus:ring-amber-500 bg-slate-950"
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">Pubblica Indirizzo</span>
+                            <span className="text-[9px] text-slate-400">Mostra la via esatta al pubblico</span>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={formTrattativaRiservata}
+                            onChange={(e) => setFormTrattativaRiservata(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-800 text-amber-500 focus:ring-amber-500 bg-slate-950"
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">Trattativa Riservata</span>
+                            <span className="text-[9px] text-slate-400">Nasconde la cifra del prezzo</span>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={formAsta}
+                            onChange={(e) => setFormAsta(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-800 text-amber-500 focus:ring-amber-500 bg-slate-950"
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">Immobile all&apos;Asta</span>
+                            <span className="text-[9px] text-slate-400">Mostra badge Asta e inserisce in tassonomia</span>
+                          </div>
+                        </label>
+                      </div>
+
+                      {/* Inputs per Lat, Lng, Zoom */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-black text-slate-400 block">Latitudine GPS (es. 45.0152)</label>
+                          <input
+                            type="text"
+                            value={formLatitudine}
+                            onChange={(e) => setFormLatitudine(e.target.value)}
+                            placeholder="E.g. 45.01520157"
+                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-black text-slate-400 block">Longitudine GPS (es. 7.8287)</label>
+                          <input
+                            type="text"
+                            value={formLongitudine}
+                            onChange={(e) => setFormLongitudine(e.target.value)}
+                            placeholder="E.g. 7.82870007"
+                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-black text-slate-400 block">Livello Zoom Mappa (1-20)</label>
+                          <input
+                            type="number"
+                            value={formZoom}
+                            onChange={(e) => setFormZoom(Number(e.target.value))}
+                            placeholder="12"
+                            min="1"
+                            max="20"
+                            className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -2341,6 +2449,9 @@ export default function Backoffice() {
                                 l.categoria === 'IMMOBILE' ? 'bg-indigo-950 text-indigo-400 border border-indigo-900' : 'bg-amber-950 text-amber-400 border border-amber-900'
                               }`}>
                                 {l.categoria === 'IMMOBILE' ? 'Immobile' : 'Attività'}
+                              </span>
+                              <span className="text-[9px] text-slate-500 font-mono block mt-1">
+                                {new Date(l.data_creazione).toLocaleDateString('it-IT')}
                               </span>
                             </td>
                             <td className="px-4 py-4 text-slate-400">{cleanVal(l.indirizzo).replace(/^,\s*/, '')}</td>

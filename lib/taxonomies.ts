@@ -32,6 +32,7 @@ interface ListingDataForTaxonomy {
   stato_immobile?: string;
   riscaldamento?: string;
   disponibilita?: string;
+  asta?: boolean;
   businessDetails?: {
     settore_merceologico?: string;
   } | null;
@@ -67,6 +68,9 @@ export async function saveTaxonomiesIfNew(listing: ListingDataForTaxonomy) {
 
     // 3. Tipo Annuncio (tipologia, e.g. Appartamento, Villa, Bar, etc.)
     checkAndAdd('TIPO_ANNUNCIO', listing.tipologia);
+    if (listing.asta) {
+      checkAndAdd('TIPO_ANNUNCIO', 'Asta');
+    }
 
     // 4. Stato del Bene
     checkAndAdd('STATO_DEL_BENE', listing.stato_immobile);

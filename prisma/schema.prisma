@@ -72,6 +72,12 @@ model Listing {
   proprietario_nome     String?          @db.VarChar(150)
   proprietario_telefono String?          @db.VarChar(50)
   stima_riservata       Decimal?         @db.Decimal(12, 2)
+  pubblica_indirizzo    Boolean          @default(true)
+  trattativa_riservata  Boolean          @default(false)
+  asta                  Boolean          @default(false)
+  latitudine            String?          @db.VarChar(50)
+  longitudine           String?          @db.VarChar(50)
+  zoom                  Int?             @default(12)
 
   // Relazione 1-a-1 opzionale con PropertyDetails. Se categoria = IMMOBILE, questa relazione conterrà i dettagli fisici del bene.
   propertyDetails PropertyDetails?
