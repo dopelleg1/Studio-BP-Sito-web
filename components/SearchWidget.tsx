@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, ChevronDown, Building2, Briefcase } from 'lucide-react';
 
 interface SearchWidgetProps {
@@ -15,6 +15,17 @@ interface SearchWidgetProps {
 }
 
 export default function SearchWidget({ activeTab, onChangeTab, onSearch }: SearchWidgetProps) {
+
+  const [taxonomies, setTaxonomies] = useState<any>({});
+
+  useEffect(() => {
+    fetch('/api/taxonomies')
+      .then(res => res.json())
+      .then(data => {
+        setTaxonomies(data);
+      })
+      .catch(err => console.error("Errore caricamento tassonomie in widget:", err));
+  }, []);
 
   // Stati dropdown per Immobili
   const [tipoImmobile, setTipoImmobile] = useState('Tutti');
@@ -82,10 +93,9 @@ export default function SearchWidget({ activeTab, onChangeTab, onSearch }: Searc
                   className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent/25 focus:border-accent transition-all cursor-pointer pr-10"
                 >
                   <option value="Tutti">Tutti gli Immobili</option>
-                  <option value="Appartamento">Appartamento</option>
-                  <option value="Villa">Villa Unifamiliare</option>
-                  <option value="Attico">Attico & Superattico</option>
-                  <option value="Arredato">Bilocale / Trilocale</option>
+                  {taxonomies.TIPO_ANNUNCIO?.map((tipo: string) => (
+                    <option key={tipo} value={tipo}>{tipo}</option>
+                  ))}
                 </select>
                 <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
@@ -140,10 +150,9 @@ export default function SearchWidget({ activeTab, onChangeTab, onSearch }: Searc
                   className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-accent/25 focus:border-accent transition-all cursor-pointer pr-10"
                 >
                   <option value="Tutti">Tutti i settori</option>
-                  <option value="Ristorazione / Bar">Ristorazione / Bar</option>
-                  <option value="Trasporti / Logistica">Trasporti / Logistica</option>
-                  <option value="Hotellerie">Immobili Turistici / Alberghi</option>
-                  <option value="Servizi">Uffici e Servizi</option>
+                  {taxonomies.SETTORE_MERCEOLOGICO?.map((set: string) => (
+                    <option key={set} value={set}>{set}</option>
+                  ))}
                 </select>
                 <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>

@@ -94,6 +94,12 @@ interface Listing {
   riscaldamento?: string;
   disponibilita?: string;
   spese_condominiali?: string;
+  pubblica_indirizzo?: boolean;
+  trattativa_riservata?: boolean;
+  asta?: boolean;
+  latitudine?: string | null;
+  longitudine?: string | null;
+  zoom?: number;
 }
 
 interface Lead {
@@ -549,9 +555,14 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
     // Filtro per Tipologia o Settore
     if (currentFilters.tipologiaOrSettore !== 'Tutti') {
       if (currentFilters.category === 'IMMOBILE') {
-        const titleMatch = l.titolo.toLowerCase().includes(currentFilters.tipologiaOrSettore.toLowerCase()) ||
-                           l.descrizione.toLowerCase().includes(currentFilters.tipologiaOrSettore.toLowerCase());
-        if (!titleMatch) return false;
+        if (currentFilters.tipologiaOrSettore.toLowerCase() === 'asta') {
+          if (!l.asta) return false;
+        } else {
+          const titleMatch = l.titolo.toLowerCase().includes(currentFilters.tipologiaOrSettore.toLowerCase()) ||
+                             l.descrizione.toLowerCase().includes(currentFilters.tipologiaOrSettore.toLowerCase()) ||
+                             (l.tipologia && l.tipologia.toLowerCase() === currentFilters.tipologiaOrSettore.toLowerCase());
+          if (!titleMatch) return false;
+        }
       } else {
         // Business
         if (l.businessDetails?.settore_merceologico !== currentFilters.tipologiaOrSettore) return false;

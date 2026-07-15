@@ -84,13 +84,18 @@ export default function BusinessCard({ listing, details, onSelect }: BusinessCar
               e.currentTarget.src = `https://picsum.photos/seed/${listing.id}/800/500`;
             }}
           />
-          <div className="absolute top-4 left-4 flex gap-1.5">
+          <div className="absolute top-4 left-4 flex flex-wrap gap-1.5">
             <span className="px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-full text-primary bg-accent shadow-sm">
               {listing.tipo_contratto === 'VENDITA' ? 'Cessione Azienda' : 'Locazione B2B'}
             </span>
             <span className="px-3 py-1 text-[10px] font-bold tracking-widest uppercase rounded-full bg-slate-950/80 backdrop-blur-md text-slate-300 border border-slate-800 shadow-sm">
               B2B • BUSINESS
             </span>
+            {listing.asta && (
+              <span className="px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-full bg-red-600 text-white shadow-md animate-pulse">
+                ASTA TRIBUNALE
+              </span>
+            )}
           </div>
         </div>
 

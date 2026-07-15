@@ -74,13 +74,18 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
               e.currentTarget.src = `https://picsum.photos/seed/${listing.id}/800/500`;
             }}
           />
-          <div className="absolute top-4 left-4 flex gap-1.5">
+          <div className="absolute top-4 left-4 flex flex-wrap gap-1.5">
             <span className="px-3 py-1 text-[10px] font-extrabold tracking-widest uppercase rounded-full text-white bg-primary shadow-sm border border-slate-700/30">
               {listing.tipo_contratto}
             </span>
             <span className="px-3 py-1 text-[10px] font-bold tracking-widest uppercase rounded-full bg-accent text-primary font-black shadow-sm">
               B2C • IMMOBILE
             </span>
+            {listing.asta && (
+              <span className="px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-full bg-red-600 text-white shadow-md animate-pulse">
+                ASTA TRIBUNALE
+              </span>
+            )}
           </div>
         </div>
 
