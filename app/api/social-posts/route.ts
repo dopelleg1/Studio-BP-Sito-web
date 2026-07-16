@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { getSession } from '@/lib/session';
 
 const getFilePath = () => path.join(process.cwd(), 'lib', 'social-posts.json');
 
@@ -33,6 +34,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Operazione non autorizzata.' }, { status: 401 });
+    }
+
     const body = await req.json();
     let { piattaforma, url_post, didascalia } = body;
 
@@ -134,6 +140,11 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Operazione non autorizzata.' }, { status: 401 });
+    }
+
     const url = new URL(req.url);
     const id = parseInt(url.searchParams.get("id") || "", 10);
 

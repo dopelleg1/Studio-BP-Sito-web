@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { db } from '@/lib/db';
 import { saveTaxonomiesIfNew } from '@/lib/taxonomies';
+import { getSession } from '@/lib/session';
 
 // Definizione Tipi coerenti con il resto dell'applicazione
 type TipoContratto = 'VENDITA' | 'AFFITTO';
@@ -195,6 +196,11 @@ function extractReference(item: any, descrizione: string): string | null {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Operazione non autorizzata.' }, { status: 401 });
+    }
+
     const body = await req.json().catch(() => ({}));
     const { force = false, url, xmlContent, onlyTaxonomies = false } = body;
 

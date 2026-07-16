@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { getSession } from '@/lib/session';
 
 const getFilePath = () => path.join(process.cwd(), 'lib', 'taxonomies.json');
 
@@ -33,6 +34,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Operazione non autorizzata." }, { status: 401 });
+    }
+
     const body = await req.json();
     const { action, taxonomy, value, oldValue, newValue } = body;
 

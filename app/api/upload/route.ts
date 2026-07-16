@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { getSession } from '@/lib/session';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Operazione non autorizzata.' }, { status: 401 });
+    }
+
     const formData = await req.json();
     const { name, type, base64 } = formData;
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 // Tipo definition for dynamic Prisma filtering
 interface ListingFilter {
@@ -308,12 +309,32 @@ export async function GET(req: NextRequest) {
         .slice(0, 10);
     }
 
+    const session = await getSession();
+    const isAdmin = !!session;
+
+    // Sanitizzazione dei risultati per escludere dati sensibili per utenti non admin
+    const sanitizedResults = results.map((l: any) => ({
+      ...l,
+      prezzo: Number(l.prezzo),
+      stima_riservata: isAdmin && l.stima_riservata ? Number(l.stima_riservata) : undefined,
+      proprietario_nome: isAdmin ? l.proprietario_nome : undefined,
+      proprietario_telefono: isAdmin ? l.proprietario_telefono : undefined,
+      businessDetails: l.businessDetails ? {
+        ...l.businessDetails,
+        settore_merceologico: l.businessDetails.settore_merceologico,
+        fatturato_annuo: l.businessDetails.fatturato_annuo ? Number(l.businessDetails.fatturato_annuo) : undefined,
+        canone_mura: l.businessDetails.canone_mura ? Number(l.businessDetails.canone_mura) : undefined,
+        utile_netto: isAdmin && l.businessDetails.utile_netto ? Number(l.businessDetails.utile_netto) : undefined,
+        numero_dipendenti: l.businessDetails.numero_dipendenti
+      } : undefined
+    }));
+
     return NextResponse.json({
       success: true,
       source,
-      resultsCount: results.length,
+      resultsCount: sanitizedResults.length,
       filtersApplied: whereClause,
-      data: results
+      data: sanitizedResults
     }, { status: 200 });
 
   } catch (error: any) {

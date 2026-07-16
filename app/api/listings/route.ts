@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { saveTaxonomiesIfNew } from '@/lib/taxonomies';
+import { getSession } from '@/lib/session';
 
 export async function GET() {
   try {
@@ -14,16 +15,23 @@ export async function GET() {
       },
     });
 
-    // Trasformiamo i Decimal in Number per la compatibilità con il frontend
+    const session = await getSession();
+    const isAdmin = !!session;
+
+    // Trasformiamo i Decimal in Number per la compatibilità con il frontend ed oscuriamo dati sensibili se non admin
     const formattedListings = listings.map((l: any) => ({
       ...l,
       prezzo: Number(l.prezzo),
-      stima_riservata: l.stima_riservata ? Number(l.stima_riservata) : undefined,
+      stima_riservata: isAdmin && l.stima_riservata ? Number(l.stima_riservata) : undefined,
+      proprietario_nome: isAdmin ? l.proprietario_nome : undefined,
+      proprietario_telefono: isAdmin ? l.proprietario_telefono : undefined,
       businessDetails: l.businessDetails ? {
         ...l.businessDetails,
+        settore_merceologico: l.businessDetails.settore_merceologico,
         fatturato_annuo: l.businessDetails.fatturato_annuo ? Number(l.businessDetails.fatturato_annuo) : undefined,
         canone_mura: l.businessDetails.canone_mura ? Number(l.businessDetails.canone_mura) : undefined,
-        utile_netto: l.businessDetails.utile_netto ? Number(l.businessDetails.utile_netto) : undefined,
+        utile_netto: isAdmin && l.businessDetails.utile_netto ? Number(l.businessDetails.utile_netto) : undefined,
+        numero_dipendenti: l.businessDetails.numero_dipendenti
       } : undefined
     }));
 
@@ -36,6 +44,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Operazione non autorizzata.' }, { status: 401 });
+    }
+
     const data = await req.json();
     const { propertyDetails, businessDetails, id, ...baseData } = data;
 

@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Operazione non autorizzata.' }, { status: 401 });
+    }
+
     const leads = await db.lead.findMany({
       orderBy: {
         data_creazione: 'desc',

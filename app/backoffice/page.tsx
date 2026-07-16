@@ -515,20 +515,35 @@ export default function Backoffice() {
   };
 
   // Login handler
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim().toLowerCase() === 'editore' && password === 'sbp') {
-      setIsAuthenticated(true);
-      localStorage.setItem('sbp_editor_session', 'true');
-      showToast('Autenticato con successo come Editore Studio BP');
-      setAuthError('');
-    } else {
-      setAuthError('Credenziali non valide. Inserisci "editore" e "sbp" per accedere.');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsAuthenticated(true);
+        showToast('Autenticato con successo come Editore Studio BP');
+        setAuthError('');
+      } else {
+        setAuthError(data.error || 'Credenziali non valide. Inserisci "editore" e "sbp" per accedere.');
+      }
+    } catch (err) {
+      console.error(err);
+      setAuthError('Errore durante la connessione al server.');
     }
   };
 
   // Logout handler
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error("Errore richiamando API logout:", err);
+    }
     setIsAuthenticated(false);
     localStorage.removeItem('sbp_editor_session');
     showToast('Sessione terminata correttamente.');
@@ -1141,17 +1156,31 @@ export default function Backoffice() {
     setFormImmagini(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
-  // Carica i dati all'avvio dal localStorage
+  // Carica i dati all'avvio dal localStorage / API Status
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const session = localStorage.getItem('sbp_editor_session');
-      if (session === 'true') {
-        const timerAuth = setTimeout(() => {
-          setIsAuthenticated(true);
-        }, 0);
-        return () => clearTimeout(timerAuth);
+    const checkAuthStatus = async () => {
+      try {
+        const res = await fetch('/api/auth/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated) {
+            setIsAuthenticated(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Verifica sessione fallita, fallback localStorage:", err);
       }
-    }
+      
+      // Fallback per ambienti offline/ibridi
+      if (typeof window !== 'undefined') {
+        const session = localStorage.getItem('sbp_editor_session');
+        if (session === 'true') {
+          setIsAuthenticated(true);
+        }
+      }
+    };
+    checkAuthStatus();
   }, []);
 
   // Caricamento reale dei dati all'avvio dal database MySQL (Prisma)

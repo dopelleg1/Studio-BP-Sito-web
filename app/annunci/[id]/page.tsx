@@ -6,6 +6,7 @@ import { LogoRound, LogoRectangular } from '@/components/Logo';
 import GdprBanner from '@/components/GdprBanner';
 import ResetCookieButton from '@/components/ResetCookieButton';
 import { db } from '@/lib/db';
+import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,9 @@ interface Listing {
   getrix_id?: string;
   comune?: string;
   zona?: string;
+  stima_riservata?: number;
+  proprietario_nome?: string;
+  proprietario_telefono?: string;
 }
 
 // Data seed duplicato qui sul server-side per l'id routing dinamico
@@ -169,6 +173,9 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
   const resolvedParams = await params;
   const idInt = parseInt(resolvedParams.id, 10);
 
+  const session = await getSession();
+  const isAdmin = !!session;
+
   let activeListing = FallbackListings[0];
 
   try {
@@ -195,6 +202,9 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
         getrix_id: dbl.getrix_id || undefined,
         comune: dbl.comune || undefined,
         zona: dbl.zona || undefined,
+        stima_riservata: isAdmin && dbl.stima_riservata ? Number(dbl.stima_riservata) : undefined,
+        proprietario_nome: isAdmin ? (dbl.proprietario_nome || undefined) : undefined,
+        proprietario_telefono: isAdmin ? (dbl.proprietario_telefono || undefined) : undefined,
         propertyDetails: dbl.propertyDetails ? {
           mq: Number(dbl.propertyDetails.mq),
           stanze: Number(dbl.propertyDetails.stanze),
@@ -208,7 +218,7 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
           settore_merceologico: dbl.businessDetails.settore_merceologico,
           fatturato_annuo: dbl.businessDetails.fatturato_annuo ? Number(dbl.businessDetails.fatturato_annuo) : undefined,
           canone_mura: dbl.businessDetails.canone_mura ? Number(dbl.businessDetails.canone_mura) : undefined,
-          utile_netto: dbl.businessDetails.utile_netto ? Number(dbl.businessDetails.utile_netto) : undefined,
+          utile_netto: isAdmin && dbl.businessDetails.utile_netto ? Number(dbl.businessDetails.utile_netto) : undefined,
           numero_dipendenti: dbl.businessDetails.numero_dipendenti || undefined,
         } : undefined,
       };
