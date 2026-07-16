@@ -1449,13 +1449,6 @@ export default function Backoffice() {
                 Sblocca Console Amministratore
               </button>
             </form>
-
-            <div className="mt-8 pt-6 border-t border-slate-900 text-center space-y-2">
-              <span className="text-[9.5px] text-slate-500 uppercase tracking-wider font-extrabold block">🔑 credenziali demo integrate</span>
-              <p className="text-[11px] text-amber-500/80 font-mono bg-slate-900/60 py-2 px-4 rounded-xl border border-slate-800/85">
-                Nome: <strong className="text-white">editore</strong> / Password: <strong className="text-white">sbp</strong>
-              </p>
-            </div>
           </div>
         ) : (
           
