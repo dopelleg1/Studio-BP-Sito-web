@@ -807,6 +807,10 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
               </li>
               <li className="flex items-center gap-2">
                 <Check size={14} className="text-slate-900 shrink-0" />
+                <span>Immobili nel mercato libero ed immobili all&apos;asta</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Check size={14} className="text-slate-900 shrink-0" />
                 <span>Consulenza integrata per mutui e detrazioni</span>
               </li>
               <li className="flex items-center gap-2">
