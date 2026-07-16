@@ -2421,7 +2421,8 @@ export default function Backoffice() {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-slate-900">
+                {/* Visualizzazione Tabella su Desktop (> md) */}
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-900">
                   <table className="w-full text-xs text-left text-slate-300 border-collapse">
                     <thead className="bg-slate-900/80 text-[9.5px] uppercase text-slate-400 font-mono tracking-widest border-b border-slate-850">
                       <tr>
@@ -2514,6 +2515,111 @@ export default function Backoffice() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Visualizzazione Card su Mobile (< md) */}
+                <div className="block md:hidden space-y-4">
+                  {filteredListings.length > 0 ? (
+                    filteredListings.map(l => (
+                      <div key={l.id} className="bg-slate-900/40 border border-slate-850 p-4 rounded-2xl space-y-3.5 text-xs text-left">
+                        
+                        {/* Riga 1: Rif e Ramo */}
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-[10px] text-slate-500 font-mono font-bold tracking-wide">
+                            {l.riferimento ? cleanVal(l.riferimento).toUpperCase() : `#${l.id}`}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`px-2 py-0.5 text-[8.5px] font-black uppercase tracking-widest rounded-full ${
+                              l.categoria === 'IMMOBILE' ? 'bg-indigo-950 text-indigo-400 border border-indigo-900' : 'bg-amber-950 text-amber-400 border border-amber-900'
+                            }`}>
+                              {l.categoria === 'IMMOBILE' ? 'Immobile' : 'Attività'}
+                            </span>
+                            <span className="text-[9px] text-slate-500 font-mono">
+                              {new Date(l.data_creazione).toLocaleDateString('it-IT')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Riga 2: Titolo ed Indirizzo */}
+                        <div className="space-y-1">
+                          <h4 className="font-extrabold text-white text-sm leading-snug">{cleanVal(l.titolo)}</h4>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">{l.tipo_contratto}</span>
+                          <p className="text-slate-400 text-[11px] leading-relaxed">{cleanVal(l.indirizzo).replace(/^,\s*/, '')}</p>
+                        </div>
+
+                        {/* Riga 3: Dati Economici */}
+                        <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950/60 rounded-xl border border-slate-900">
+                          <div>
+                            <span className="text-[9px] text-slate-500 font-extrabold uppercase tracking-widest block">Richiesta</span>
+                            <span className="font-mono font-black text-white text-xs mt-0.5 block">
+                              € {l.prezzo.toLocaleString('it-IT')}
+                              {l.tipo_contratto === 'AFFITTO' ? <span className="text-[10px] font-normal text-slate-500">/m</span> : ''}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-500 font-extrabold uppercase tracking-widest block">Stima Interna</span>
+                            <span className="font-mono font-extrabold text-amber-400 text-xs mt-0.5 block">
+                              € {l.stima_riservata ? l.stima_riservata.toLocaleString('it-IT') : Math.round(l.prezzo * 0.92).toLocaleString('it-IT')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Riga 4: Proprietario */}
+                        <div className="flex justify-between items-center text-[10.5px] py-1 border-t border-slate-900">
+                          <div className="text-slate-300">
+                            <span className="text-[8.5px] text-slate-500 font-bold uppercase block leading-none mb-0.5">Proprietario</span>
+                            <span className="font-bold">{l.proprietario_nome || 'Carlo Geri'}</span>
+                            <span className="text-slate-500 ml-2 italic font-mono">{l.proprietario_telefono || '+39 328...'}</span>
+                          </div>
+                          {l.in_evidenza && (
+                            <span className="text-[9px] text-emerald-400 bg-emerald-950/30 border border-emerald-900/60 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider flex items-center gap-1">
+                              <Star size={10} className="fill-current" />
+                              Evidenza
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Riga 5: Azioni */}
+                        <div className="flex items-center gap-2 pt-2 border-t border-slate-850">
+                          <Link
+                            href={`/annunci/${l.id}`}
+                            target="_blank"
+                            className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-slate-350 hover:text-white rounded-xl border border-slate-850 font-bold text-center text-[10.5px] flex items-center justify-center gap-1.5"
+                          >
+                            <Eye size={12} />
+                            <span>Vedi</span>
+                          </Link>
+                          <button
+                            onClick={() => handleEditClick(l)}
+                            className="flex-1 py-2 bg-slate-900 hover:bg-slate-850 text-amber-400 hover:text-white rounded-xl border border-slate-800 font-bold text-[10.5px] flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Edit2 size={12} />
+                            <span>Modifica</span>
+                          </button>
+                          <button
+                            onClick={() => handleToggleFeatured(l.id, l.in_evidenza || false)}
+                            className={`p-2 rounded-xl border cursor-pointer transition-all ${
+                              l.in_evidenza
+                                ? 'bg-emerald-950/40 text-emerald-400 border-emerald-900'
+                                : 'bg-slate-900 text-slate-500 border-slate-800'
+                            }`}
+                          >
+                            <Star size={12} className={l.in_evidenza ? 'fill-current' : ''} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteListing(l.id)}
+                            className="p-2 bg-red-950/30 hover:bg-red-900 text-red-400 hover:text-white rounded-xl border border-red-950 cursor-pointer"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center bg-slate-950 border border-slate-850 rounded-2xl text-slate-500 text-xs font-semibold">
+                      Nessun annuncio trovato nel database locale.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
