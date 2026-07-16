@@ -112,6 +112,7 @@ interface Lead {
   id_listing_associato?: number;
   status: LeadStatus;
   data_creazione: string;
+  metodo_contatto?: string;
 }
 
 // Data seed iniziale eccellente per la demo
@@ -441,8 +442,8 @@ export default function Homepage() {
   // Invio Lead reale su MySQL Prisma
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newLeadForm.nome || !newLeadForm.email) {
-      alert('Per favore, compila i campi obbligatori Nome ed Email.');
+    if (!newLeadForm.nome || !newLeadForm.email || !newLeadForm.telefono) {
+      alert('Per favore, compila tutti i campi obbligatori (Nome, Email e Telefono).');
       return;
     }
 
@@ -453,10 +454,11 @@ export default function Homepage() {
         body: JSON.stringify({
           nome: newLeadForm.nome,
           email: newLeadForm.email,
-          telefono: newLeadForm.telefono || undefined,
+          telefono: newLeadForm.telefono,
           messaggio: newLeadForm.messaggio || `Richiesta di informazioni per l'annuncio #${selectedListing?.id}`,
           id_listing_associato: selectedListing?.id,
-          status: 'NEW'
+          status: 'NEW',
+          metodo_contatto: leadContactMethod
         })
       });
 
@@ -504,6 +506,7 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
         messaggio: newLeadForm.messaggio || `Richiesta di informazioni per l'annuncio #${selectedListing?.id}`,
         id_listing_associato: selectedListing?.id,
         status: 'NEW',
+        metodo_contatto: leadContactMethod,
         data_creazione: new Date().toISOString()
       };
 
@@ -1664,9 +1667,10 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
 
                     {/* Telefono */}
                     <div className="space-y-1.5 align-left text-left">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Numero di Telefono (Facoltativo)</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Numero di Telefono *</label>
                       <input 
                         type="tel" 
+                        required
                         placeholder="es. +39 333 1234567"
                         value={newLeadForm.telefono}
                         onChange={(e) => setNewLeadForm({ ...newLeadForm, telefono: e.target.value })}

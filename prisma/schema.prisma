@@ -143,6 +143,7 @@ model Lead {
   email                  String     @db.VarChar(150)
   telefono               String?    @db.VarChar(30)
   messaggio              String     @db.Text
+  metodo_contatto        String?    @db.VarChar(20) @default("EMAIL") // E.g. "EMAIL" o "WHATSAPP"
   
   // Chiave esterna opzionale: un lead può nascere da un annuncio specifico, oppure essere un contatto generico.
   id_listing_associato   Int?       @map("id_listing_associato")
@@ -154,4 +155,17 @@ model Lead {
   data_creazione         DateTime   @default(now())
 
   @@map("leads")
+}
+
+model SmtpConfig {
+  id        Int      @id @default(1)
+  host      String   @db.VarChar(255)
+  port      Int      @default(587)
+  secure    Boolean  @default(false)
+  user      String   @db.VarChar(255)
+  pass      String   @db.VarChar(255)
+  fromEmail String   @db.VarChar(255)
+  toEmail   String   @db.VarChar(255)
+
+  @@map("smtp_config")
 }

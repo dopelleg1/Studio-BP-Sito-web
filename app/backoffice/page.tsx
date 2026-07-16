@@ -125,6 +125,7 @@ interface Lead {
   id_listing_associato?: number;
   status: LeadStatus;
   data_creazione: string;
+  metodo_contatto?: string;
 }
 
 // Data seed iniziale in coordinamento con la homepage
@@ -291,10 +292,23 @@ export default function Backoffice() {
     return INITIAL_LEADS;
   });
 
-  // Vista Corrente: 'listings' | 'leads' | 'social' | 'taxonomies'
-  const [activeTab, setActiveTab] = useState<'listings' | 'leads' | 'social' | 'taxonomies'>('listings');
+  // Vista Corrente: 'listings' | 'leads' | 'social' | 'taxonomies' | 'smtp'
+  const [activeTab, setActiveTab] = useState<'listings' | 'leads' | 'social' | 'taxonomies' | 'smtp'>('listings');
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
+
+  // Stati per la gestione della configurazione SMTP
+  const [smtpConfig, setSmtpConfig] = useState({
+    host: '',
+    port: 587,
+    secure: false,
+    user: '',
+    pass: '',
+    fromEmail: '',
+    toEmail: ''
+  });
+  const [smtpLoading, setSmtpLoading] = useState(false);
+  const [smtpSaving, setSmtpSaving] = useState(false);
 
   // Stati per la gestione dei Post Social
   const [socialPosts, setSocialPosts] = useState<any[]>([]);
@@ -547,6 +561,48 @@ export default function Backoffice() {
     setIsAuthenticated(false);
     localStorage.removeItem('sbp_editor_session');
     showToast('Sessione terminata correttamente.');
+  };
+
+  // Recupero configurazione SMTP
+  const fetchSmtpConfig = async () => {
+    try {
+      setSmtpLoading(true);
+      const res = await fetch('/api/smtp-config');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.config) {
+          setSmtpConfig(data.config);
+        }
+      }
+    } catch (err) {
+      console.error("Errore nel recupero della config SMTP:", err);
+    } finally {
+      setSmtpLoading(false);
+    }
+  };
+
+  // Salvataggio configurazione SMTP
+  const handleSmtpSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSmtpSaving(true);
+      const res = await fetch('/api/smtp-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(smtpConfig)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast("Configurazione SMTP salvata con successo!");
+      } else {
+        showToast(data.error || "Errore nel salvataggio della configurazione SMTP.");
+      }
+    } catch (err) {
+      console.error("Errore nel salvataggio SMTP:", err);
+      showToast("Errore di connessione durante il salvataggio SMTP.");
+    } finally {
+      setSmtpSaving(false);
+    }
   };
 
   // Caricamento dei post social
@@ -1496,7 +1552,7 @@ export default function Backoffice() {
             </div>
 
             {/* SEZIONE FILTRI E CONTROLLO TAB MULTI-SCHERMO */}
-            <div className="flex border-b border-slate-800 p-1 bg-slate-950 rounded-2xl max-w-3xl">
+            <div className="flex flex-wrap border-b border-slate-800 p-1 bg-slate-950 rounded-2xl max-w-4xl gap-1">
               <button
                 onClick={() => { setActiveTab('listings'); setIsFormOpen(false); }}
                 className={`flex-1 py-3 px-2 text-center text-[10px] md:text-xs uppercase font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -1532,6 +1588,15 @@ export default function Backoffice() {
               >
                 <Tag size={13} />
                 <span>Gestione Tassonomie</span>
+              </button>
+              <button
+                onClick={() => { setActiveTab('smtp'); setIsFormOpen(false); fetchSmtpConfig(); }}
+                className={`flex-1 py-3 px-2 text-center text-[10px] md:text-xs uppercase font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  activeTab === 'smtp' ? 'bg-slate-900 text-amber-400 border border-slate-800' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Mail size={13} />
+                <span>SMTP</span>
               </button>
             </div>
 
@@ -2675,7 +2740,16 @@ export default function Backoffice() {
                       return (
                         <div key={lead.id} className="bg-slate-900/60 border border-slate-850 rounded-2xl p-4 md:p-5 text-left grid grid-cols-1 md:grid-cols-12 gap-4 items-start relative">
                           <div className="md:col-span-4 space-y-1.5">
-                            <span className="text-[10px] text-slate-500 font-mono block">Data: {new Date(lead.data_creazione).toLocaleString('it-IT')}</span>
+                            <div className="flex items-center justify-between md:justify-start gap-2">
+                              <span className="text-[10px] text-slate-500 font-mono">Data: {new Date(lead.data_creazione).toLocaleString('it-IT')}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider ${
+                                lead.metodo_contatto === 'WHATSAPP' 
+                                  ? 'bg-emerald-950 text-emerald-400 border border-emerald-900/40' 
+                                  : 'bg-indigo-950 text-indigo-400 border border-indigo-900/40'
+                              }`}>
+                                {lead.metodo_contatto === 'WHATSAPP' ? 'WhatsApp' : 'E-mail'}
+                              </span>
+                            </div>
                             <h4 className="font-extrabold text-sm text-white">{lead.nome}</h4>
                             <div className="space-y-1 text-slate-400 text-xs pt-1">
                               <p className="flex items-center gap-1.5"><Mail size={12} /> {lead.email}</p>
@@ -3033,6 +3107,129 @@ export default function Backoffice() {
                     )}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'smtp' && !isFormOpen && (
+              <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 md:p-6 text-left space-y-5">
+                <div>
+                  <h3 className="text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
+                    <Mail size={16} className="text-amber-400" />
+                    <span>Configurazione Server SMTP Notifiche</span>
+                  </h3>
+                  <p className="text-slate-500 text-xs mt-0.5 font-semibold">
+                    Configura i parametri del server mail SMTP per inviare i messaggi dei lead di tipo e-mail direttamente alla casella postale di Studio BP.
+                  </p>
+                </div>
+
+                {smtpLoading ? (
+                  <div className="py-8 text-center text-slate-500 text-xs font-semibold animate-pulse">
+                    Caricamento configurazione SMTP in corso...
+                  </div>
+                ) : (
+                  <form onSubmit={handleSmtpSave} className="space-y-4 max-w-2xl">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-black tracking-wider text-slate-400 block font-bold">Host Server SMTP *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="es. mail.studiobpitalia.it o smtp.gmail.com"
+                          value={smtpConfig.host}
+                          onChange={(e) => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-850 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-semibold"
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-black tracking-wider text-slate-400 block font-bold">Porta *</label>
+                          <input
+                            type="number"
+                            required
+                            placeholder="es. 587 o 465"
+                            value={smtpConfig.port}
+                            onChange={(e) => setSmtpConfig({ ...smtpConfig, port: Number(e.target.value) })}
+                            className="w-full bg-slate-900 border border-slate-850 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1.5 flex flex-col justify-end pb-3">
+                          <label className="flex items-center gap-2 text-xs text-slate-350 font-bold cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={smtpConfig.secure}
+                              onChange={(e) => setSmtpConfig({ ...smtpConfig, secure: e.target.checked })}
+                              className="rounded border-slate-800 text-amber-500 focus:ring-amber-500 bg-slate-900 cursor-pointer"
+                            />
+                            <span>Usa SSL/TLS</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-black tracking-wider text-slate-400 block font-bold">Nome Utente SMTP *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="es. info@studiobpitalia.it"
+                          value={smtpConfig.user}
+                          onChange={(e) => setSmtpConfig({ ...smtpConfig, user: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-850 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-semibold"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-black tracking-wider text-slate-400 block font-bold">Password SMTP *</label>
+                        <input
+                          type="password"
+                          required
+                          placeholder="••••••••••••"
+                          value={smtpConfig.pass}
+                          onChange={(e) => setSmtpConfig({ ...smtpConfig, pass: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-850 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-black tracking-wider text-slate-400 block font-bold">Indirizzo Mittente (Da Email) *</label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="es. info@studiobpitalia.it"
+                          value={smtpConfig.fromEmail}
+                          onChange={(e) => setSmtpConfig({ ...smtpConfig, fromEmail: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-850 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-semibold"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-black tracking-wider text-slate-400 block font-bold">Email Ricevente (A Email) *</label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="es. lead@studiobpitalia.it"
+                          value={smtpConfig.toEmail}
+                          onChange={(e) => setSmtpConfig({ ...smtpConfig, toEmail: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-850 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-semibold"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={smtpSaving}
+                        className="px-6 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
+                      >
+                        {smtpSaving ? 'Salvataggio...' : 'Salva Parametri SMTP'}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
 
