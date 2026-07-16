@@ -82,6 +82,7 @@ Puoi gestire questo lead ed aggiornare lo stato accedendo all'Area Editore del b
           await transporter.sendMail({
             from: `"${smtp.user}" <${smtp.fromEmail}>`,
             to: smtp.toEmail,
+            replyTo: createdLead.email,
             subject: mailSubject,
             text: mailText
           });
