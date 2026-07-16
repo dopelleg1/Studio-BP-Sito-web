@@ -810,9 +810,10 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
                     if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }, 150);
                 }}
-                className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-900 text-slate-350 hover:text-amber-400 font-extrabold uppercase text-xs tracking-wider transition-colors"
+                className="w-full text-left py-3 px-4 rounded-xl bg-slate-900/40 hover:bg-slate-900 border border-slate-850 text-slate-100 hover:text-amber-400 font-black uppercase text-xs tracking-wider transition-all flex items-center justify-between cursor-pointer"
               >
-                Immobili
+                <span>Immobili</span>
+                <ChevronRight size={14} className="text-slate-500" />
               </button>
 
               <button
@@ -831,17 +832,19 @@ Messaggio: ${newLeadForm.messaggio.trim() || 'Desidero essere ricontattato per q
                     if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }, 150);
                 }}
-                className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-900 text-slate-350 hover:text-amber-400 font-extrabold uppercase text-xs tracking-wider transition-colors"
+                className="w-full text-left py-3 px-4 rounded-xl bg-slate-900/40 hover:bg-slate-900 border border-slate-850 text-slate-100 hover:text-amber-400 font-black uppercase text-xs tracking-wider transition-all flex items-center justify-between cursor-pointer"
               >
-                Attività in vendita
+                <span>Attività in vendita</span>
+                <ChevronRight size={14} className="text-slate-500" />
               </button>
 
               <Link
                 href="/social"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-900 text-slate-350 hover:text-amber-400 font-extrabold uppercase text-xs tracking-wider transition-colors block"
+                className="w-full text-left py-3 px-4 rounded-xl bg-slate-900/40 hover:bg-slate-900 border border-slate-850 text-slate-100 hover:text-amber-400 font-black uppercase text-xs tracking-wider transition-all flex items-center justify-between cursor-pointer block"
               >
-                Studio BP Social
+                <span>Studio BP Social</span>
+                <ChevronRight size={14} className="text-slate-500" />
               </Link>
 
               <div className="border-t border-slate-900 pt-4 mt-2">
