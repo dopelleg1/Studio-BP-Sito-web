@@ -48,6 +48,8 @@ interface Listing {
   stima_riservata?: number;
   proprietario_nome?: string;
   proprietario_telefono?: string;
+  archiviato?: boolean;
+  data_archiviazione?: string;
 }
 
 // Data seed duplicato qui sul server-side per l'id routing dinamico
@@ -221,6 +223,8 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
           utile_netto: isAdmin && dbl.businessDetails.utile_netto ? Number(dbl.businessDetails.utile_netto) : undefined,
           numero_dipendenti: dbl.businessDetails.numero_dipendenti || undefined,
         } : undefined,
+        archiviato: dbl.archiviato,
+        data_archiviazione: dbl.data_archiviazione ? dbl.data_archiviazione.toISOString() : undefined,
       };
     } else {
       const found = FallbackListings.find(l => l.id === idInt);
@@ -237,6 +241,23 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
   }
 
   const isB2C = activeListing.categoria === 'IMMOBILE';
+
+  if (activeListing.archiviato && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center text-amber-400 border border-slate-800 mb-6">
+          <Globe size={30} />
+        </div>
+        <h1 className="text-xl font-black tracking-tight text-white mb-2 uppercase">Annuncio Non Disponibile</h1>
+        <p className="text-slate-400 text-xs max-w-sm mb-6 leading-relaxed font-semibold">
+          Siamo spiacenti, questa inserzione immobiliare o commerciale è stata archiviata, ritirata dal mercato o venduta.
+        </p>
+        <Link href="/" className="px-6 py-3 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer">
+          Torna alla Home Page
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 selection:bg-amber-400 selection:text-slate-950">

@@ -101,6 +101,8 @@ interface Listing {
   latitudine?: string | null;
   longitudine?: string | null;
   zoom?: number;
+  archiviato?: boolean;
+  data_archiviazione?: string;
 }
 
 interface Lead {

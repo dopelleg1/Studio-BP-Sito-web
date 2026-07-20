@@ -6,6 +6,7 @@ import { getSession } from '@/lib/session';
 interface ListingFilter {
   categoria?: 'IMMOBILE' | 'BUSINESS';
   tipo_contratto?: 'VENDITA' | 'AFFITTO';
+  archiviato?: boolean;
   prezzo?: {
     lte?: number;
     gte?: number;
@@ -236,6 +237,8 @@ export async function GET(req: NextRequest) {
         whereClause.businessDetails = bizFilters;
       }
     }
+
+    whereClause.archiviato = false;
 
     let results = [];
     let source = 'PRISMA_DATABASE';

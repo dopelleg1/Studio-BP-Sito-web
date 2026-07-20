@@ -5,7 +5,11 @@ import { getSession } from '@/lib/session';
 
 export async function GET() {
   try {
+    const session = await getSession();
+    const isAdmin = !!session;
+
     const listings = await db.listing.findMany({
+      where: isAdmin ? undefined : { archiviato: false },
       include: {
         propertyDetails: true,
         businessDetails: true,
@@ -14,9 +18,6 @@ export async function GET() {
         data_creazione: 'desc',
       },
     });
-
-    const session = await getSession();
-    const isAdmin = !!session;
 
     // Trasformiamo i Decimal in Number per la compatibilità con il frontend ed oscuriamo dati sensibili se non admin
     const formattedListings = listings.map((l: any) => ({

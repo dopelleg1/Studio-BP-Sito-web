@@ -35,7 +35,8 @@ import {
   Instagram,
   Share2,
   ExternalLink,
-  Tag
+  Tag,
+  Archive
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoRound, LogoRectangular } from '@/components/Logo';
@@ -114,6 +115,8 @@ interface Listing {
   latitudine?: string | null;
   longitudine?: string | null;
   zoom?: number;
+  archiviato?: boolean;
+  data_archiviazione?: string;
 }
 
 interface Lead {
@@ -292,8 +295,8 @@ export default function Backoffice() {
     return INITIAL_LEADS;
   });
 
-  // Vista Corrente: 'listings' | 'leads' | 'social' | 'taxonomies' | 'smtp'
-  const [activeTab, setActiveTab] = useState<'listings' | 'leads' | 'social' | 'taxonomies' | 'smtp'>('listings');
+  // Vista Corrente: 'listings' | 'leads' | 'social' | 'taxonomies' | 'smtp' | 'archive'
+  const [activeTab, setActiveTab] = useState<'listings' | 'leads' | 'social' | 'taxonomies' | 'smtp' | 'archive'>('listings');
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
 
@@ -829,6 +832,42 @@ export default function Backoffice() {
     }
   };
 
+  // Archiviazione manuale annuncio
+  const handleArchiveListing = async (id: number) => {
+    try {
+      const response = await fetch(`/api/listings/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archiviato: true })
+      });
+      if (!response.ok) throw new Error("Errore durante l'archiviazione");
+
+      showToast("Annuncio archiviato nello storico con successo.");
+      setListings(prev => prev.map(l => l.id === id ? { ...l, archiviato: true, data_archiviazione: new Date().toISOString() } : l));
+    } catch (err: any) {
+      console.error(err);
+      showToast("Impossibile archiviare l'annuncio.");
+    }
+  };
+
+  // Ripristina annuncio online
+  const handleRestoreListing = async (id: number) => {
+    try {
+      const response = await fetch(`/api/listings/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archiviato: false })
+      });
+      if (!response.ok) throw new Error("Errore durante il ripristino");
+
+      showToast("Annuncio ripristinato online con successo.");
+      setListings(prev => prev.map(l => l.id === id ? { ...l, archiviato: false, data_archiviazione: undefined } : l));
+    } catch (err: any) {
+      console.error(err);
+      showToast("Impossibile ripristinare l'annuncio.");
+    }
+  };
+
   // Attiva/disattiva lo stato 'in evidenza' di un annuncio su MySQL
   const handleToggleFeatured = async (listingId: number, currentStatus: boolean) => {
     try {
@@ -1331,11 +1370,26 @@ export default function Backoffice() {
 
   // Filtra listings in tempo reale per la schermata
   const filteredListings = listings.filter(l => {
+    const isNotArchived = !l.archiviato;
     const matchesSearch = l.titolo.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           l.indirizzo.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           l.id.toString() === searchTerm;
     const matchesCategory = filterCategory === 'Tutti' || l.categoria === filterCategory;
-    return matchesSearch && matchesCategory;
+    return isNotArchived && matchesSearch && matchesCategory;
+  });
+
+  const filteredArchivedListings = listings.filter(l => {
+    const isArchived = !!l.archiviato;
+    const matchesSearch = l.titolo.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          l.indirizzo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          l.id.toString() === searchTerm;
+    const matchesCategory = filterCategory === 'Tutti' || l.categoria === filterCategory;
+    // Ordiniamo gli archiviati per data di archiviazione decrescente se disponibile
+    return isArchived && matchesSearch && matchesCategory;
+  }).sort((a, b) => {
+    const dateA = a.data_archiviazione ? new Date(a.data_archiviazione).getTime() : 0;
+    const dateB = b.data_archiviazione ? new Date(b.data_archiviazione).getTime() : 0;
+    return dateB - dateA;
   });
 
   return (
@@ -1554,6 +1608,15 @@ export default function Backoffice() {
               >
                 <Database size={13} />
                 <span>Gestione Annunci</span>
+              </button>
+              <button
+                onClick={() => { setActiveTab('archive'); setIsFormOpen(false); }}
+                className={`flex-1 py-3 px-2 text-center text-[10px] md:text-xs uppercase font-black tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  activeTab === 'archive' ? 'bg-slate-900 text-amber-400 border border-slate-800' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Archive size={13} />
+                <span>Storico Archivio</span>
               </button>
               <button
                 onClick={() => { setActiveTab('leads'); setIsFormOpen(false); }}
@@ -2583,12 +2646,12 @@ export default function Backoffice() {
                                   <Star size={12} className={l.in_evidenza ? 'fill-current' : ''} />
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteListing(l.id)}
-                                  className="p-1.5 bg-red-950/30 hover:bg-red-900 text-red-400 hover:text-white rounded-lg border border-red-950 cursor-pointer"
-                                  title="Elimina inserzione"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
+                                   onClick={() => handleArchiveListing(l.id)}
+                                   className="p-1.5 bg-amber-950/35 hover:bg-amber-900/60 text-amber-400 hover:text-white rounded-lg border border-amber-950 cursor-pointer"
+                                   title="Archivia inserzione nello storico"
+                                 >
+                                   <Archive size={12} />
+                                 </button>
                               </div>
                             </td>
                           </tr>
@@ -2694,6 +2757,163 @@ export default function Backoffice() {
                             <Star size={12} className={l.in_evidenza ? 'fill-current' : ''} />
                           </button>
                           <button
+                            onClick={() => handleArchiveListing(l.id)}
+                            className="p-2 bg-amber-950/35 hover:bg-amber-900 text-amber-400 hover:text-white rounded-xl border border-amber-950 cursor-pointer"
+                            title="Archivia"
+                          >
+                            <Archive size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center bg-slate-950 border border-slate-850 rounded-2xl text-slate-500 text-xs font-semibold">
+                      Nessun annuncio trovato nel database locale.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'archive' && !isFormOpen && (
+              <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 md:p-6 space-y-5 text-left">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
+                      <Archive size={16} className="text-amber-400" />
+                      <span>Storico Inserzioni Archiviate ({filteredArchivedListings.length})</span>
+                    </h3>
+                    <p className="text-slate-500 text-xs mt-0.5">Elenco degli annunci ritirati dal mercato, venduti o archiviati dall'importatore Getrix.</p>
+                  </div>
+                </div>
+
+                {/* Vista Tabella Wide Desktop */}
+                <div className="hidden md:block overflow-x-auto">
+                  {filteredArchivedListings.length > 0 ? (
+                    <table className="w-full text-xs text-left text-slate-300">
+                      <thead>
+                        <tr className="border-b border-slate-800 text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-900/30">
+                          <th className="px-4 py-3.5 text-left">Codice Rif.</th>
+                          <th className="px-4 py-3.5 text-left">Scheda Annuncio</th>
+                          <th className="px-4 py-3.5 text-left">Ramo</th>
+                          <th className="px-4 py-3.5 text-left">Ubicazione</th>
+                          <th className="px-4 py-3.5 text-left">Richiesta (€)</th>
+                          <th className="px-4 py-3.5 text-left">Data Archiviazione</th>
+                          <th className="px-4 py-3.5 text-center">Azioni</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-850">
+                        {filteredArchivedListings.map(l => (
+                          <tr key={l.id} className="hover:bg-slate-900/40 transition-colors">
+                            <td className="px-4 py-4 font-mono text-[10.5px] text-slate-500 font-bold">
+                              {l.riferimento ? cleanVal(l.riferimento).toUpperCase() : `#${l.id}`}
+                            </td>
+                            <td className="px-4 py-4 min-w-[200px]">
+                              <p className="font-extrabold text-white text-xs">{cleanVal(l.titolo)}</p>
+                              <span className="text-[10px] text-slate-400 font-bold uppercase mt-0.5 inline-block">{l.tipo_contratto}</span>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <span className={`px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider ${
+                                l.categoria === 'IMMOBILE'
+                                  ? 'bg-amber-900/20 text-amber-400 border border-amber-900/40'
+                                  : 'bg-emerald-950 text-emerald-400 border border-emerald-950'
+                              }`}>
+                                {l.categoria === 'IMMOBILE' ? 'Immobile' : 'Attività'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 truncate max-w-[200px]" title={l.indirizzo}>
+                              {cleanVal(l.indirizzo)}
+                            </td>
+                            <td className="px-4 py-4 font-extrabold text-slate-100 whitespace-nowrap">
+                              € {Number(l.prezzo).toLocaleString('it-IT')}
+                            </td>
+                            <td className="px-4 py-4 text-slate-400 font-mono whitespace-nowrap">
+                              {l.data_archiviazione ? new Date(l.data_archiviazione).toLocaleDateString('it-IT') : 'N/D'}
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => handleRestoreListing(l.id)}
+                                  className="p-1.5 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 hover:text-white rounded-lg border border-emerald-900 cursor-pointer"
+                                  title="Ripristina e rimetti online"
+                                >
+                                  <CheckCircle size={12} />
+                                </button>
+                                <button
+                                  onClick={() => handleEditClick(l)}
+                                  className="p-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 hover:text-white rounded-lg border border-slate-800 cursor-pointer"
+                                  title="Modifica"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteListing(l.id)}
+                                  className="p-1.5 bg-red-950/30 hover:bg-red-900 text-red-400 hover:text-white rounded-lg border border-red-950 cursor-pointer"
+                                  title="Elimina definitivamente"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="p-8 text-center bg-slate-900/30 border border-slate-850 rounded-2xl text-slate-500 text-xs font-semibold">
+                      Nessun annuncio presente nello storico archiviati.
+                    </div>
+                  )}
+                </div>
+
+                {/* Vista Griglia Mobile (md:hidden) */}
+                <div className="md:hidden grid grid-cols-1 gap-4">
+                  {filteredArchivedListings.length > 0 ? (
+                    filteredArchivedListings.map(l => (
+                      <div key={l.id} className="bg-slate-900/40 border border-slate-850 p-4 rounded-2xl space-y-3 text-xs text-left">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-[10px] text-slate-500 font-mono font-bold tracking-wide">
+                            {l.riferimento ? cleanVal(l.riferimento).toUpperCase() : `#${l.id}`}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider ${
+                            l.categoria === 'IMMOBILE' ? 'bg-amber-900/20 text-amber-400' : 'bg-emerald-950 text-emerald-400'
+                          }`}>
+                            {l.categoria === 'IMMOBILE' ? 'Immobile' : 'Attività'}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="font-extrabold text-white text-xs">{cleanVal(l.titolo)}</h4>
+                          <p className="text-slate-400 mt-1 font-semibold">{cleanVal(l.indirizzo)}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                          <div>
+                            <span className="text-[8.5px] text-slate-500 font-bold uppercase block">Richiesta</span>
+                            <span className="font-extrabold text-white">€ {Number(l.prezzo).toLocaleString('it-IT')}</span>
+                          </div>
+                          <div>
+                            <span className="text-[8.5px] text-slate-500 font-bold uppercase block">Archiviato il</span>
+                            <span className="font-semibold text-slate-350">{l.data_archiviazione ? new Date(l.data_archiviazione).toLocaleDateString('it-IT') : 'N/D'}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-2 border-t border-slate-850">
+                          <button
+                            onClick={() => handleRestoreListing(l.id)}
+                            className="flex-1 py-2 bg-emerald-950/40 hover:bg-emerald-900 text-emerald-400 hover:text-white rounded-xl border border-emerald-900 font-bold text-[10.5px] flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <CheckCircle size={12} />
+                            <span>Ripristina</span>
+                          </button>
+                          <button
+                            onClick={() => handleEditClick(l)}
+                            className="flex-1 py-2 bg-slate-900 hover:bg-slate-850 text-amber-400 hover:text-white rounded-xl border border-slate-800 font-bold text-[10.5px] flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Edit2 size={12} />
+                            <span>Modifica</span>
+                          </button>
+                          <button
                             onClick={() => handleDeleteListing(l.id)}
                             className="p-2 bg-red-950/30 hover:bg-red-900 text-red-400 hover:text-white rounded-xl border border-red-950 cursor-pointer"
                           >
@@ -2704,7 +2924,7 @@ export default function Backoffice() {
                     ))
                   ) : (
                     <div className="p-8 text-center bg-slate-950 border border-slate-850 rounded-2xl text-slate-500 text-xs font-semibold">
-                      Nessun annuncio trovato nel database locale.
+                      Nessun annuncio presente nello storico archiviati.
                     </div>
                   )}
                 </div>

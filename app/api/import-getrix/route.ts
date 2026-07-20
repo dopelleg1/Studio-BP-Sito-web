@@ -678,12 +678,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Auto-archiviazione degli annunci non più presenti nell'XML importato
+    const xmlGetrixIds = importedListings.map((l: any) => l.getrix_id).filter(Boolean);
+    const autoArchived = await db.listing.updateMany({
+      where: {
+        getrix_id: {
+          notIn: xmlGetrixIds,
+          not: null
+        },
+        archiviato: false
+      },
+      data: {
+        archiviato: true,
+        data_archiviazione: new Date()
+      }
+    });
+
     return NextResponse.json({
       success: true,
       count: importedListings.length,
       added: addedCount,
       updated: updatedCount,
       skipped: skippedCount,
+      autoArchived: autoArchived.count,
       listings: importedListings
     });
 

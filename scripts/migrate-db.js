@@ -11,7 +11,9 @@ async function main() {
     { table: "listings", name: "latitudine", sql: "ALTER TABLE listings ADD COLUMN latitudine VARCHAR(50) NULL" },
     { table: "listings", name: "longitudine", sql: "ALTER TABLE listings ADD COLUMN longitudine VARCHAR(50) NULL" },
     { table: "listings", name: "zoom", sql: "ALTER TABLE listings ADD COLUMN zoom INT NULL DEFAULT 12" },
-    { table: "leads", name: "metodo_contatto", sql: "ALTER TABLE leads ADD COLUMN metodo_contatto VARCHAR(20) NULL DEFAULT 'EMAIL'" }
+    { table: "leads", name: "metodo_contatto", sql: "ALTER TABLE leads ADD COLUMN metodo_contatto VARCHAR(20) NULL DEFAULT 'EMAIL'" },
+    { table: "listings", name: "archiviato", sql: "ALTER TABLE listings ADD COLUMN archiviato TINYINT(1) NOT NULL DEFAULT 0" },
+    { table: "listings", name: "data_archiviazione", sql: "ALTER TABLE listings ADD COLUMN data_archiviazione DATETIME NULL" }
   ];
 
   for (const col of columns) {

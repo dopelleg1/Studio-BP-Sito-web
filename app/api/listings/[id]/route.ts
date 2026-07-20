@@ -139,18 +139,25 @@ export async function PATCH(
       return NextResponse.json({ error: 'ID non valido' }, { status: 400 });
     }
 
-    const { in_evidenza } = await req.json();
+    const body = await req.json();
+    const dataToUpdate: any = {};
+
+    if (body.in_evidenza !== undefined) {
+      dataToUpdate.in_evidenza = Boolean(body.in_evidenza);
+    }
+    if (body.archiviato !== undefined) {
+      dataToUpdate.archiviato = Boolean(body.archiviato);
+      dataToUpdate.data_archiviazione = body.archiviato ? new Date() : null;
+    }
 
     const updated = await db.listing.update({
       where: { id: numericId },
-      data: {
-        in_evidenza: Boolean(in_evidenza),
-      },
+      data: dataToUpdate,
     });
 
     return NextResponse.json({ success: true, updated });
   } catch (error: any) {
-    console.error('Errore durante il patch di in_evidenza:', error);
+    console.error('Errore durante il patch dell\'annuncio:', error);
     return NextResponse.json({ error: error.message || 'Errore interno' }, { status: 500 });
   }
 }
@@ -169,6 +176,19 @@ export async function DELETE(
     const numericId = Number(id);
     if (isNaN(numericId)) {
       return NextResponse.json({ error: 'ID non valido' }, { status: 400 });
+    }
+
+    // Verifica se l'annuncio è archiviato prima di eliminarlo
+    const existing = await db.listing.findUnique({
+      where: { id: numericId }
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Annuncio non trovato' }, { status: 404 });
+    }
+
+    if (!existing.archiviato) {
+      return NextResponse.json({ error: 'Non è consentito eliminare un annuncio online. Si prega di archiviarlo prima.' }, { status: 400 });
     }
 
     // Cascade delete gestito a livello DB rimuoverà in automatico i dettagli collegati
