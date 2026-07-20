@@ -7,7 +7,21 @@
     "Negozio",
     "Rustico",
     "Capannone",
-    "Asta"
+    "Asta",
+    "Discoteca - Disco Pub - Locale Notturno",
+    "Bar - Tabacchi - Ricevitoria",
+    "Attività Commerciale",
+    "Ristorante",
+    "Palestra e Impianti Sportivi",
+    "Alberghi - Hotels - Pensioni",
+    "Alimentari - Gastronomia",
+    "Bar Tavola Calda - Fredda",
+    "Pasticceria - Gelateria",
+    "Panificio - Pastificio",
+    "Terreno edificabile",
+    "Bed & Breakfast",
+    "Parrucchieri Uomo - Donna",
+    "Villa a Schiera"
   ],
   "REGIME_CONTRATTUALE": [
     "VENDITA",
