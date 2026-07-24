@@ -81,11 +81,6 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
             <span className="px-3 py-1 text-[10px] font-bold tracking-widest uppercase rounded-full bg-accent text-primary font-black shadow-sm">
               B2C • IMMOBILE
             </span>
-            {listing.asta && (
-              <span className="px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-full bg-red-600 text-white shadow-md animate-pulse">
-                ASTA TRIBUNALE
-              </span>
-            )}
           </div>
         </div>
 
@@ -97,7 +92,7 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
             </span>
             {listing.asta && (
               <span className="px-2 py-0.5 bg-amber-500 text-slate-950 text-[9.5px] font-black uppercase rounded-md tracking-wider">
-                ASTA TRIBUNALE
+                ASTA
               </span>
             )}
           </div>
