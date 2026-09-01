@@ -171,3 +171,14 @@ model SmtpConfig {
 
   @@map("smtp_config")
 }
+
+model AdminUser {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(100)
+  password  String   @db.VarChar(255)
+  role      String   @default("admin") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("admin_users")
+}

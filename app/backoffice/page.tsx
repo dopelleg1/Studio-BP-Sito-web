@@ -546,7 +546,7 @@ export default function Backoffice() {
         showToast('Autenticato con successo come Editore Studio BP');
         setAuthError('');
       } else {
-        setAuthError(data.error || 'Credenziali non valide. Inserisci "editore" e "sbp" per accedere.');
+        setAuthError(data.error || 'Credenziali non valide. Riprova con le credenziali corrette.');
       }
     } catch (err) {
       console.error(err);

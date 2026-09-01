@@ -58,6 +58,38 @@ async function main() {
     console.error("Errore durante la creazione di smtp_config:", err.message);
   }
 
+  // Creazione tabella admin_users
+  try {
+    console.log("Creazione tabella admin_users...");
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS \`admin_users\` (
+        \`id\` INT NOT NULL AUTO_INCREMENT,
+        \`username\` VARCHAR(100) NOT NULL UNIQUE,
+        \`password\` VARCHAR(255) NOT NULL,
+        \`role\` VARCHAR(50) NOT NULL DEFAULT 'admin',
+        \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (\`id\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    console.log("Tabella admin_users creata con successo.");
+
+    // Inserimento o aggiornamento credenziali per editore ed editor
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO \`admin_users\` (\`username\`, \`password\`, \`role\`)
+      VALUES ('editore', 'Stud102010!!', 'admin')
+      ON DUPLICATE KEY UPDATE \`password\` = 'Stud102010!!';
+    `);
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO \`admin_users\` (\`username\`, \`password\`, \`role\`)
+      VALUES ('editor', 'Stud102010!!', 'admin')
+      ON DUPLICATE KEY UPDATE \`password\` = 'Stud102010!!';
+    `);
+    console.log("Credenziali editor/editore inserite/aggiornate con successo in admin_users.");
+  } catch (err) {
+    console.error("Errore durante la gestione di admin_users:", err.message);
+  }
+
   console.log("Migrazione completata. Disconnessione...");
   await prisma.$disconnect();
 }
