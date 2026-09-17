@@ -77,6 +77,8 @@ model Listing {
   pubblica_indirizzo    Boolean          @default(true)
   trattativa_riservata  Boolean          @default(false)
   asta                  Boolean          @default(false)
+  zero_provvigioni      Boolean          @default(false)
+  tassazione_agevolata  Boolean          @default(false)
   latitudine            String?          @db.VarChar(50)
   longitudine           String?          @db.VarChar(50)
   zoom                  Int?             @default(12)

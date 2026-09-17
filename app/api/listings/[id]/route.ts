@@ -51,6 +51,8 @@ export async function PUT(
         pubblica_indirizzo: baseData.pubblica_indirizzo !== undefined ? Boolean(baseData.pubblica_indirizzo) : true,
         trattativa_riservata: baseData.trattativa_riservata !== undefined ? Boolean(baseData.trattativa_riservata) : false,
         asta: baseData.asta !== undefined ? Boolean(baseData.asta) : false,
+        zero_provvigioni: baseData.zero_provvigioni !== undefined ? Boolean(baseData.zero_provvigioni) : false,
+        tassazione_agevolata: baseData.tassazione_agevolata !== undefined ? Boolean(baseData.tassazione_agevolata) : false,
         latitudine: baseData.latitudine || null,
         longitudine: baseData.longitudine || null,
         zoom: baseData.zoom !== undefined ? Number(baseData.zoom) : 12,
@@ -148,6 +150,12 @@ export async function PATCH(
     if (body.archiviato !== undefined) {
       dataToUpdate.archiviato = Boolean(body.archiviato);
       dataToUpdate.data_archiviazione = body.archiviato ? new Date() : null;
+    }
+    if (body.zero_provvigioni !== undefined) {
+      dataToUpdate.zero_provvigioni = Boolean(body.zero_provvigioni);
+    }
+    if (body.tassazione_agevolata !== undefined) {
+      dataToUpdate.tassazione_agevolata = Boolean(body.tassazione_agevolata);
     }
 
     const updated = await db.listing.update({

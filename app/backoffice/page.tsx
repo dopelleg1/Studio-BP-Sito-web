@@ -117,6 +117,8 @@ interface Listing {
   zoom?: number;
   archiviato?: boolean;
   data_archiviazione?: string;
+  zero_provvigioni?: boolean;
+  tassazione_agevolata?: boolean;
 }
 
 interface Lead {
@@ -400,6 +402,8 @@ export default function Backoffice() {
   const [formPubblicaIndirizzo, setFormPubblicaIndirizzo] = useState<boolean>(true);
   const [formTrattativaRiservata, setFormTrattativaRiservata] = useState<boolean>(false);
   const [formAsta, setFormAsta] = useState<boolean>(false);
+  const [formZeroProvvigioni, setFormZeroProvvigioni] = useState<boolean>(false);
+  const [formTassazioneAgevolata, setFormTassazioneAgevolata] = useState<boolean>(false);
   const [formLatitudine, setFormLatitudine] = useState<string>('');
   const [formLongitudine, setFormLongitudine] = useState<string>('');
   const [formZoom, setFormZoom] = useState<number>(12);
@@ -976,6 +980,8 @@ export default function Backoffice() {
     setFormPubblicaIndirizzo(listing.pubblica_indirizzo !== undefined ? Boolean(listing.pubblica_indirizzo) : true);
     setFormTrattativaRiservata(listing.trattativa_riservata !== undefined ? Boolean(listing.trattativa_riservata) : false);
     setFormAsta(listing.asta !== undefined ? Boolean(listing.asta) : false);
+    setFormZeroProvvigioni(listing.zero_provvigioni !== undefined ? Boolean(listing.zero_provvigioni) : false);
+    setFormTassazioneAgevolata(listing.tassazione_agevolata !== undefined ? Boolean(listing.tassazione_agevolata) : false);
     setFormLatitudine(cleanVal(listing.latitudine));
     setFormLongitudine(cleanVal(listing.longitudine));
     setFormZoom(listing.zoom !== undefined ? Number(listing.zoom) : 12);
@@ -1033,6 +1039,8 @@ export default function Backoffice() {
     setFormPubblicaIndirizzo(true);
     setFormTrattativaRiservata(false);
     setFormAsta(false);
+    setFormZeroProvvigioni(false);
+    setFormTassazioneAgevolata(false);
     setFormLatitudine('');
     setFormLongitudine('');
     setFormZoom(12);
@@ -1102,6 +1110,8 @@ export default function Backoffice() {
       pubblica_indirizzo: Boolean(formPubblicaIndirizzo),
       trattativa_riservata: Boolean(formTrattativaRiservata),
       asta: Boolean(formAsta),
+      zero_provvigioni: Boolean(formZeroProvvigioni),
+      tassazione_agevolata: Boolean(formTassazioneAgevolata),
       latitudine: formLatitudine.trim() || null,
       longitudine: formLongitudine.trim() || null,
       zoom: Number(formZoom),
@@ -2093,6 +2103,40 @@ export default function Backoffice() {
                             placeholder="E.g. Esente IVA, imposta registro prima casa 2%"
                             className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
                           />
+                        </div>
+                      </div>
+
+                      {/* Badge e Diciture Scheda Pubblica */}
+                      <div className="pt-3 border-t border-slate-800/80">
+                        <span className="text-[10px] uppercase font-black text-slate-400 block tracking-wider mb-2.5">
+                          Badge Pubblici nella Scheda Annuncio (Opzionali)
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <label className="flex items-center gap-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800 cursor-pointer select-none hover:border-slate-700 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={formZeroProvvigioni}
+                              onChange={(e) => setFormZeroProvvigioni(e.target.checked)}
+                              className="w-4 h-4 rounded border-slate-800 text-amber-500 focus:ring-amber-500 bg-slate-950"
+                            />
+                            <div className="flex flex-col">
+                              <span className="text-xs font-bold text-white">Nessuna provvigione acquirente</span>
+                              <span className="text-[9px] text-slate-400">Mostra il badge verde accanto al prezzo (default: disattivato)</span>
+                            </div>
+                          </label>
+
+                          <label className="flex items-center gap-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800 cursor-pointer select-none hover:border-slate-700 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={formTassazioneAgevolata}
+                              onChange={(e) => setFormTassazioneAgevolata(e.target.checked)}
+                              className="w-4 h-4 rounded border-slate-800 text-amber-500 focus:ring-amber-500 bg-slate-950"
+                            />
+                            <div className="flex flex-col">
+                              <span className="text-xs font-bold text-white">Soggetto a tassazione agevolata</span>
+                              <span className="text-[9px] text-slate-400">Mostra la dicitura sotto il prezzo (default: disattivato)</span>
+                            </div>
+                          </label>
                         </div>
                       </div>
                     </div>

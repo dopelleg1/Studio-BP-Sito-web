@@ -26,6 +26,8 @@ export async function GET() {
       stima_riservata: isAdmin && l.stima_riservata ? Number(l.stima_riservata) : undefined,
       proprietario_nome: isAdmin ? l.proprietario_nome : undefined,
       proprietario_telefono: isAdmin ? l.proprietario_telefono : undefined,
+      zero_provvigioni: Boolean(l.zero_provvigioni),
+      tassazione_agevolata: Boolean(l.tassazione_agevolata),
       businessDetails: l.businessDetails ? {
         ...l.businessDetails,
         settore_merceologico: l.businessDetails.settore_merceologico,
@@ -81,6 +83,8 @@ export async function POST(req: Request) {
         pubblica_indirizzo: baseData.pubblica_indirizzo !== undefined ? Boolean(baseData.pubblica_indirizzo) : true,
         trattativa_riservata: baseData.trattativa_riservata !== undefined ? Boolean(baseData.trattativa_riservata) : false,
         asta: baseData.asta !== undefined ? Boolean(baseData.asta) : false,
+        zero_provvigioni: baseData.zero_provvigioni !== undefined ? Boolean(baseData.zero_provvigioni) : false,
+        tassazione_agevolata: baseData.tassazione_agevolata !== undefined ? Boolean(baseData.tassazione_agevolata) : false,
         latitudine: baseData.latitudine || null,
         longitudine: baseData.longitudine || null,
         zoom: baseData.zoom !== undefined ? Number(baseData.zoom) : 12,

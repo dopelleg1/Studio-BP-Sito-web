@@ -103,6 +103,8 @@ interface Listing {
   zoom?: number;
   archiviato?: boolean;
   data_archiviazione?: string;
+  zero_provvigioni?: boolean;
+  tassazione_agevolata?: boolean;
 }
 
 interface Lead {

@@ -21,7 +21,9 @@
     "Terreno edificabile",
     "Bed & Breakfast",
     "Parrucchieri Uomo - Donna",
-    "Villa a Schiera"
+    "Villa a Schiera",
+    "Edicole - Edicole con Chiosco",
+    "Casa indipendente"
   ],
   "REGIME_CONTRATTUALE": [
     "VENDITA",
@@ -45,7 +47,8 @@
     "Alberghi - Hotels - Pensioni",
     "Alimentari - Gastronomia",
     "Panificio - Pastificio",
-    "Bed & Breakfast"
+    "Bed & Breakfast",
+    "Edicole - Edicole con Chiosco"
   ],
   "STATO_DEL_BENE": [
     "Ottimo / Abitabile subito",

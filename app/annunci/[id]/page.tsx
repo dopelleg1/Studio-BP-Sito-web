@@ -50,6 +50,8 @@ interface Listing {
   proprietario_telefono?: string;
   archiviato?: boolean;
   data_archiviazione?: string;
+  zero_provvigioni?: boolean;
+  tassazione_agevolata?: boolean;
 }
 
 // Data seed duplicato qui sul server-side per l'id routing dinamico
@@ -225,6 +227,8 @@ export default async function DettaglioAnnuncio({ params }: { params: Promise<{ 
         } : undefined,
         archiviato: dbl.archiviato,
         data_archiviazione: dbl.data_archiviazione ? dbl.data_archiviazione.toISOString() : undefined,
+        zero_provvigioni: Boolean(dbl.zero_provvigioni),
+        tassazione_agevolata: Boolean(dbl.tassazione_agevolata),
       };
     } else {
       const found = FallbackListings.find(l => l.id === idInt);

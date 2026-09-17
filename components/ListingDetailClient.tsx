@@ -81,6 +81,8 @@ interface Listing {
   pubblica_indirizzo?: boolean;
   trattativa_riservata?: boolean;
   asta?: boolean;
+  zero_provvigioni?: boolean;
+  tassazione_agevolata?: boolean;
   latitudine?: string | null;
   longitudine?: string | null;
   zoom?: number;
@@ -519,13 +521,19 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
                 </p>
               </div>
 
-              <div className="text-right">
-                <span className="text-[10.5px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg font-bold border border-emerald-100/60 inline-flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                  Nessuna provvigione acquirente
-                </span>
-                <p className="text-[10px] text-slate-400 font-medium mt-1">Soggetto a tassazione agevolata</p>
-              </div>
+              {(listing.zero_provvigioni || listing.tassazione_agevolata) && (
+                <div className="text-right">
+                  {listing.zero_provvigioni && (
+                    <span className="text-[10.5px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg font-bold border border-emerald-100/60 inline-flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                      Nessuna provvigione acquirente
+                    </span>
+                  )}
+                  {listing.tassazione_agevolata && (
+                    <p className="text-[10px] text-slate-400 font-medium mt-1">Soggetto a tassazione agevolata</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
