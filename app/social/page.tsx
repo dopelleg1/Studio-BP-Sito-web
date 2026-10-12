@@ -152,7 +152,7 @@ export default function SocialPage() {
           
           {/* Card Instagram */}
           <a 
-            href="https://www.instagram.com/studiobpitalia" 
+            href="https://www.instagram.com/studio_bp_immobiliare_aziende/" 
             target="_blank" 
             rel="noopener noreferrer"
             className="p-6 bg-white border border-slate-200 rounded-3xl space-y-5 hover:border-pink-500/30 hover:shadow-xl transition-all duration-300 group text-left relative overflow-hidden"
@@ -163,7 +163,7 @@ export default function SocialPage() {
                 <Instagram size={24} />
               </div>
               <span className="text-[10px] font-extrabold uppercase bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full group-hover:bg-pink-50 group-hover:text-pink-600 transition-colors">
-                @studiobpitalia
+                @studio_bp_immobiliare_aziende
               </span>
             </div>
             <div className="space-y-2">
@@ -180,7 +180,7 @@ export default function SocialPage() {
 
           {/* Card Reels */}
           <a 
-            href="https://www.instagram.com/studiobpitalia/reels" 
+            href="https://www.instagram.com/studio_bp_immobiliare_aziende/reels" 
             target="_blank" 
             rel="noopener noreferrer"
             className="p-6 bg-white border border-slate-200 rounded-3xl space-y-5 hover:border-rose-500/30 hover:shadow-xl transition-all duration-300 group text-left relative overflow-hidden"
@@ -305,7 +305,7 @@ export default function SocialPage() {
                             </span>
                           </div>
                           <span className="text-[10px] font-black z-10 opacity-90 select-all">
-                            {isInsta ? '@studiobpitalia' : '@studiobpitalia'}
+                            {isInsta ? '@studio_bp_immobiliare_aziende' : '@studiobpitalia'}
                           </span>
                         </div>
                       </div>
