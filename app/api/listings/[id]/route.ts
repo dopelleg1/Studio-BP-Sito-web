@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { db } from '@/lib/db';
 import { saveTaxonomiesIfNew } from '@/lib/taxonomies';
 import { getSession } from '@/lib/session';
@@ -197,6 +199,21 @@ export async function DELETE(
 
     if (!existing.archiviato) {
       return NextResponse.json({ error: 'Non è consentito eliminare un annuncio online. Si prega di archiviarlo prima.' }, { status: 400 });
+    }
+
+    // Se l'annuncio possiede immagini locali su disco, eliminiamo i file fisici per non lasciare orfani
+    try {
+      const imgs = Array.isArray(existing.immagini) ? existing.immagini : [];
+      for (const imgUrl of imgs) {
+        if (typeof imgUrl === 'string' && imgUrl.startsWith('/media/')) {
+          const filePath = path.join(process.cwd(), 'public', imgUrl.replace(/^\//, ''));
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`Impossibile rimuovere alcuni file immagine per l'annuncio ${numericId}:`, err);
     }
 
     // Cascade delete gestito a livello DB rimuoverà in automatico i dettagli collegati

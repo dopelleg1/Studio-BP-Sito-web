@@ -82,7 +82,7 @@ const sanitizeString = (str: any): string => {
   return str.trim();
 };
 
-// Funzione helper per scaricare un'immagine e salvarla in locale
+// Funzione helper per scaricare un'immagine e salvarla in locale (incrementale)
 async function downloadImage(url: string, localPath: string): Promise<boolean> {
   try {
     const dir = path.dirname(localPath);
@@ -90,11 +90,21 @@ async function downloadImage(url: string, localPath: string): Promise<boolean> {
       fs.mkdirSync(dir, { recursive: true });
     }
 
+    // Se il file esiste già ed ha una dimensione valida (> 500 byte), non riscaricarlo!
+    if (fs.existsSync(localPath)) {
+      const stats = fs.statSync(localPath);
+      if (stats.size > 500) {
+        return true;
+      }
+    }
+
     const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!response.ok) return false;
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    if (buffer.length < 500) return false;
+
     fs.writeFileSync(localPath, buffer);
     return true;
   } catch (error) {
@@ -357,7 +367,7 @@ export async function POST(req: NextRequest) {
       // Estrazione informazioni dalla descrizione
       const textInfo = parseInfoFromText(descrizione);
 
-      // Immagini: Usiamo direttamente gli URL remoti del CDN di Getrix per evitare timeout ed errori 404 in ambiente distribuito
+      // Immagini: Salvataggio locale intelligente e incrementale in public/media/listings/
       const immaginiLocali: string[] = [];
       if (item.Immagini && item.Immagini.Immagine) {
         const imgArray = Array.isArray(item.Immagini.Immagine) ? item.Immagini.Immagine : [item.Immagini.Immagine];
@@ -368,15 +378,26 @@ export async function POST(req: NextRequest) {
           const img = imgLimit[i];
           const imgUrl = img.URL;
           if (imgUrl) {
-            immaginiLocali.push(imgUrl);
+            // Nome file locale stabile: es. listing_193824004_1.jpg
+            const safeId = String(getrixId).replace(/[^a-zA-Z0-9]/g, '_');
+            const fileName = `listing_${safeId}_${i + 1}.jpg`;
+            const localRelPath = `/media/listings/${fileName}`;
+            const diskPath = path.join(process.cwd(), 'public', 'media', 'listings', fileName);
+
+            const downloaded = await downloadImage(imgUrl, diskPath);
+            if (downloaded) {
+              immaginiLocali.push(localRelPath);
+            } else {
+              // Se fallisce il download, conserviamo l'URL originale remoto come fallback
+              immaginiLocali.push(imgUrl);
+            }
           }
         }
       }
 
-      // Se non abbiamo immagini, usiamo un placeholder elegante di picsum
+      // Se non abbiamo immagini, usiamo il placeholder istituzionale ufficiale di Studio BP
       if (immaginiLocali.length === 0) {
-        const seed = cleanRiferimento.replace(/[^a-zA-Z0-9]/g, '');
-        immaginiLocali.push(`https://picsum.photos/seed/${seed}/800/500`);
+        immaginiLocali.push('/placeholder-studiobp.svg');
       }
 
       // Mappatura Dettagli specifici
@@ -607,6 +628,17 @@ export async function POST(req: NextRequest) {
             }
             updatedCount++;
           } else {
+            // Anche senza force, se l'annuncio non ha ancora immagini locali ma solo remote/picsum, aggiorniamo le immagini locali scaricate
+            if (listingsPayload.immagini && listingsPayload.immagini.length > 0) {
+              const currentImgs = Array.isArray(existing.immagini) ? existing.immagini : [];
+              const hasRemoteOrMissing = currentImgs.length === 0 || currentImgs.some((u: any) => typeof u === 'string' && (u.includes('res.getrix.it') || u.includes('picsum.photos')));
+              if (hasRemoteOrMissing) {
+                await db.listing.update({
+                  where: { id: existing.id },
+                  data: { immagini: listingsPayload.immagini }
+                });
+              }
+            }
             skippedCount++;
           }
         } else {

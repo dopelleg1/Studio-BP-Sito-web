@@ -150,9 +150,9 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
   const galleryImages = (listing.immagini && listing.immagini.length > 0)
     ? listing.immagini
     : [
-        'https://picsum.photos/seed/duomo/1200/800',
-        'https://picsum.photos/seed/villa/1200/800',
-        'https://picsum.photos/seed/cafe/1200/800'
+        '/placeholder-studiobp.svg'
+
+
       ];
 
   const formattedPrezzo = listing.prezzo.toLocaleString('it-IT');
@@ -305,6 +305,9 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
                   alt={`${listing.titolo} - Interno 1`}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder-studiobp.svg';
+                  }}
                 />
                 <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
               </div>
@@ -322,6 +325,9 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
                   alt={`${listing.titolo} - Interno 2`}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder-studiobp.svg';
+                  }}
                 />
                 <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
                 
@@ -357,6 +363,9 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
                   alt={`${listing.titolo} - Foto ${idx + 1}`}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder-studiobp.svg';
+                  }}
                 />
                 <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
                 {idx === 0 && (
@@ -436,6 +445,9 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
                   alt={`${listing.titolo} - Slide ${idx}`}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder-studiobp.svg';
+                  }}
                 />
                 <div className="absolute top-4 left-4 flex gap-1.5">
                   <span className={`px-2.5 py-0.5 text-[9px] font-black tracking-widest uppercase rounded-full text-white ${
@@ -954,6 +966,9 @@ export default function ListingDetailClient({ listing: initialListing }: Listing
                   alt={`${listing.titolo} - Foto ${activeImageIdx + 1}`}
                   className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder-studiobp.svg';
+                  }}
                 />
               </div>
 

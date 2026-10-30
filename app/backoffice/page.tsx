@@ -36,7 +36,9 @@ import {
   Share2,
   ExternalLink,
   Tag,
-  Archive
+  Archive,
+  RefreshCw,
+  CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoRound, LogoRectangular } from '@/components/Logo';
@@ -425,6 +427,50 @@ export default function Backoffice() {
     }
     return null;
   });
+
+  // Stati per la gestione dello Storage e dei File Orfani
+  const [orphanStats, setOrphanStats] = useState<{
+    totalFiles: number;
+    totalSizeBytes: number;
+    orphanCount: number;
+    orphanSizeBytes: number;
+  } | null>(null);
+  const [isScanningOrphans, setIsScanningOrphans] = useState(false);
+  const [isCleaningOrphans, setIsCleaningOrphans] = useState(false);
+
+  const fetchOrphanStats = async () => {
+    setIsScanningOrphans(true);
+    try {
+      const res = await fetch('/api/media/orphans');
+      if (res.ok) {
+        const data = await res.json();
+        setOrphanStats(data);
+      }
+    } catch (err) {
+      console.error('Errore nel controllo dei file orfani:', err);
+    } finally {
+      setIsScanningOrphans(false);
+    }
+  };
+
+  const handleCleanOrphans = async () => {
+    if (!confirm('Sei sicuro di voler eliminare definitivamente tutti i file immagine orfani non più associati ad alcun annuncio?')) return;
+    setIsCleaningOrphans(true);
+    try {
+      const res = await fetch('/api/media/orphans', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(data.message || 'File orfani rimossi con successo!');
+        fetchOrphanStats();
+      } else {
+        alert(data.error || 'Errore durante la pulizia dei file orfani.');
+      }
+    } catch (err: any) {
+      alert(`Errore: ${err.message || err}`);
+    } finally {
+      setIsCleaningOrphans(false);
+    }
+  };
 
   // Funzione per calcolare l'utilizzo delle caratteristiche
   const getFeaturesUsage = () => {
@@ -1813,6 +1859,83 @@ export default function Backoffice() {
                         </div>
                       </div>
                     )}
+
+                    {/* Gestione Memoria Server & File Immagine Orfani */}
+                    <div className="bg-slate-950 border border-slate-850 p-5 rounded-2xl space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <h4 className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                            <Database size={14} className="text-amber-400" />
+                            Manutenzione Storage Immagini &amp; File Orfani
+                          </h4>
+                          <p className="text-[10.5px] text-slate-500 mt-1">
+                            Le immagini degli annunci vengono salvate sul server locale in modo incrementale. Da qui puoi monitorare lo spazio occupato e rimuovere file di vecchi annunci non più presenti.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={fetchOrphanStats}
+                          disabled={isScanningOrphans}
+                          className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-300 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+                        >
+                          {isScanningOrphans ? (
+                            <Clock size={13} className="animate-spin text-amber-400" />
+                          ) : (
+                            <RefreshCw size={13} className="text-amber-400" />
+                          )}
+                          <span>Analizza Storage</span>
+                        </button>
+                      </div>
+
+                      {orphanStats && (
+                        <div className="space-y-4 pt-2 border-t border-slate-900">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div className="bg-slate-900/50 border border-slate-850 p-3 rounded-xl">
+                              <span className="text-[9px] uppercase font-black text-slate-400 block tracking-wider">File Totali su Disco</span>
+                              <p className="text-lg font-mono font-black text-white mt-0.5">{orphanStats.totalFiles}</p>
+                            </div>
+                            <div className="bg-slate-900/50 border border-slate-850 p-3 rounded-xl">
+                              <span className="text-[9px] uppercase font-black text-slate-400 block tracking-wider">Spazio Totale</span>
+                              <p className="text-lg font-mono font-black text-white mt-0.5">{(orphanStats.totalSizeBytes / (1024 * 1024)).toFixed(2)} MB</p>
+                            </div>
+                            <div className={`p-3 rounded-xl border ${orphanStats.orphanCount > 0 ? 'bg-amber-950/30 border-amber-800/50' : 'bg-emerald-950/30 border-emerald-800/50'}`}>
+                              <span className="text-[9px] uppercase font-black text-slate-400 block tracking-wider">File Orfani Rilevati</span>
+                              <p className={`text-lg font-mono font-black mt-0.5 ${orphanStats.orphanCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {orphanStats.orphanCount}
+                              </p>
+                            </div>
+                            <div className={`p-3 rounded-xl border ${orphanStats.orphanCount > 0 ? 'bg-amber-950/30 border-amber-800/50' : 'bg-emerald-950/30 border-emerald-800/50'}`}>
+                              <span className="text-[9px] uppercase font-black text-slate-400 block tracking-wider">Spazio Recuperabile</span>
+                              <p className={`text-lg font-mono font-black mt-0.5 ${orphanStats.orphanCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                {(orphanStats.orphanSizeBytes / (1024 * 1024)).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+
+                          {orphanStats.orphanCount > 0 ? (
+                            <div className="flex items-center justify-between p-3 bg-amber-950/20 border border-amber-500/20 rounded-xl gap-3">
+                              <p className="text-xs text-amber-300 font-medium">
+                                Sono stati trovati <strong>{orphanStats.orphanCount} file</strong> non associati a nessun annuncio nel database.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={handleCleanOrphans}
+                                disabled={isCleaningOrphans}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-slate-800 text-white font-black uppercase tracking-wider text-[11px] rounded-lg transition-all cursor-pointer shadow-md shrink-0 flex items-center gap-1.5"
+                              >
+                                {isCleaningOrphans ? <Clock size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                                <span>Elimina File Orfani</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
+                              <CheckCircle2 size={13} />
+                              Storage ottimale: nessun file orfano rilevato sul server.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {/* Stato Caratteristiche Sito Web */}
                     <div className="bg-slate-950 border border-slate-850 p-5 rounded-2xl space-y-4">

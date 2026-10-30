@@ -34,7 +34,7 @@ interface PropertyCardProps {
 
 export default function PropertyCard({ listing, details, onSelect }: PropertyCardProps) {
   // Parsing sicuro delle immagini
-  let imageUrl = 'https://picsum.photos/seed/property/800/500';
+  let imageUrl = '/placeholder-studiobp.svg';
   if (listing.immagini) {
     if (typeof listing.immagini === 'string') {
       try {
@@ -71,7 +71,7 @@ export default function PropertyCard({ listing, details, onSelect }: PropertyCar
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             referrerPolicy="no-referrer"
             onError={(e) => {
-              e.currentTarget.src = `https://picsum.photos/seed/${listing.id}/800/500`;
+              e.currentTarget.src = '/placeholder-studiobp.svg';
             }}
           />
           <div className="absolute top-4 left-4 flex flex-wrap gap-1.5">
